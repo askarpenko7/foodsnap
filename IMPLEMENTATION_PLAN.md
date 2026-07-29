@@ -1,6 +1,6 @@
 # FoodSnap — Implementation Plan & Progress Tracker
 
-> Companion to [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) (the source of truth for *what* to build). This file tracks *what has been done*. Any AI agent working on this repo picks its next task here and updates this file as it works. Honesty rule applies to this file too: a task is only `[x]` if its **Verify** line actually passed — never "should work".
+> Companion to [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) (the source of truth for *what* to build) and [`docs/DESIGN.md`](docs/DESIGN.md) (the source of truth for *how it looks* — tokens, components, per-screen specs). This file tracks *what has been done*. Any AI agent working on this repo picks its next task here and updates this file as it works. Honesty rule applies to this file too: a task is only `[x]` if its **Verify** line actually passed — never "should work".
 
 ---
 
@@ -38,9 +38,10 @@
 
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
-| Phase 1 — "it classifies on Android" | 0/14 | 0/1 | 0/2 | not started |
+| Phase 1 — "it classifies on Android" | 0/15 | 0/1 | 0/2 | not started |
 | Phase 2 — "gateway, Docker, CI, released APK" | 0/14 | 0/3 | 0/4 | not started |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
+| Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
 **Now:** nothing in progress · **Next up:** P1.1 · **Blocked on human:** nothing
 
@@ -64,6 +65,9 @@
 | react-native-image-picker | — | — | |
 | react-native-config | — | — | |
 | react-native-mmkv | — | — | Phase 3 |
+| Glass/blur approach (`@react-native-community/blur` vs translucent fallback) | — | — | see `docs/DESIGN.md` §4 — record decision |
+| IBM Plex Mono font files (OFL) | — | — | bundled in app; the design's data/numbers voice |
+| culori (dev-only) | — | — | OKLCH → hex token generation script (P1.6) |
 | fuse.js (or Levenshtein impl) | — | — | record matcher choice |
 | Jest + RN preset / ts-jest | — | — | |
 | tsup vs tsc (service builds) | — | — | record choice |
@@ -92,49 +96,53 @@
   Check current stable versions of every row above (npm/official docs), record version + date + source. Decide Node base image, proxy approach, matcher lib, build tool.
   **Verify:** no `—` left in mobile/tooling rows; each row has a source.
 
-### B. React Native app scaffold
+### B. React Native app scaffold + design system
 
 - [ ] **P1.5 — Scaffold `apps/mobile`** *(depends: P1.2–P1.4)*
   Bare React Native (not Expo), TypeScript, New Architecture ON, Hermes ON, wired into the workspace.
   **Verify:** `cd apps/mobile/android && ./gradlew assembleDebug` succeeds.
 
-- [ ] **P1.6 — Navigation + app structure**
-  `@react-navigation/native-stack`; folders `src/screens`, `src/api`, `src/hooks`, `src/theme`. Stub Capture and Results screens registered.
-  **Verify:** app boots to CaptureScreen stub on emulator.
+- [ ] **P1.6 — Design tokens + theme system** *(depends: P1.5)*
+  Implement `docs/DESIGN.md` as code in `apps/mobile/src/theme/`: `tokens.ts` (surfaces, text ladder, accents, white alphas, radii, spacing, type scale, glass presets) + small node script using `culori` that converts the OKLCH accent sources to exact hex (replaces the provisional values — commit generated output). Bundle IBM Plex Mono (400/500/600, OFL notice kept) and register it for Android/iOS. Record the glass/blur decision in Verified Versions. Dark-only.
+  **Verify:** a token-gallery dev screen (or storybook-style stub) renders surfaces/type/bars with the generated hex; fonts resolve on Android emulator (mono numbers visibly mono).
 
-- [ ] **P1.7 — CaptureScreen**
-  Big "Snap food" button → camera via `react-native-image-picker`; secondary "Pick from gallery". Camera-permission denial handled gracefully (explanatory UI, gallery still works). On selection → navigate to Results with the file URI.
-  **Verify:** typecheck green + manual emulator flow (camera and gallery paths, denial path).
+- [ ] **P1.7 — Navigation + app structure**
+  `@react-navigation/native-stack`; folders `src/screens`, `src/api`, `src/hooks`, `src/theme`. Stub Capture and Results screens registered, themed via P1.6 (dark `bg.screen`, no plain white defaults). Plain stack for MVP — the design's tab bar arrives in P4.1.
+  **Verify:** app boots to themed CaptureScreen stub on emulator.
+
+- [ ] **P1.8 — CaptureScreen (design: camera screen)** *(depends: P1.6)*
+  Styled per `docs/DESIGN.md` §5 screen 3 + §6: dark full-bleed with corner-bracket viewfinder, "Fill the frame with your plate" hint, 82px shutter → camera via `react-native-image-picker`, "Library" glass chip → gallery. ("Type it" is P4.4 — omit.) Camera-permission denial handled gracefully (explanatory UI, gallery still works). On selection → navigate to Results with the file URI.
+  **Verify:** typecheck green + manual emulator flow (camera and gallery paths, denial path); visual check against DESIGN.md.
 
 ### C. `packages/food-classifier` TurboModule
 
-- [ ] **P1.8 — Scaffold the library** *(depends: P1.5)*
+- [ ] **P1.9 — Scaffold the library** *(depends: P1.5)*
   `create-react-native-library`, Kotlin + Swift TurboModule ("new architecture") template. Consumed by `apps/mobile` as a workspace dependency.
   **Verify:** codegen runs; app still builds with the library linked.
 
-- [ ] **P1.9 — TS spec (codegen) exactly per brief §3**
+- [ ] **P1.10 — TS spec (codegen) exactly per brief §3**
   `Classification { label: string; confidence: number }`; `classifyImage(uri: string): Promise<Classification[]>`; `isAvailable(): Promise<boolean>`.
   **Verify:** codegen output contains the spec; typecheck green.
 
-- [ ] **P1.10 — Kotlin / ML Kit implementation** *(depends: P1.9)*
+- [ ] **P1.11 — Kotlin / ML Kit implementation** *(depends: P1.10)*
   ML Kit Image Labeling, on-device default model — no API key, no network. `InputImage.fromFilePath(context, uri)` → labeler → top **5** by confidence desc, filter `< 0.1`. Coded rejections: `E_FILE_NOT_FOUND`, `E_CLASSIFICATION_FAILED`. Work off the UI thread; resolve/reject per TurboModule threading conventions. Code comment on the generic-labeler-vs-food-model MVP tradeoff (interview material, brief §3).
-  **Verify:** exercised end-to-end via P1.12 on emulator with a real photo.
+  **Verify:** exercised end-to-end via P1.13 on emulator with a real photo.
 
-- [ ] **P1.11 — iOS stub (keep iOS compiling)**
+- [ ] **P1.12 — iOS stub (keep iOS compiling)**
   Swift side: `isAvailable()` → `false`; `classifyImage` rejects `E_CLASSIFICATION_FAILED` ("iOS implementation lands in Phase 3"). Real Vision impl is P3.1.
   **Verify:** iOS target still builds (`pod install` + build check); no Android regression.
 
 ### D. Results + wrap-up
 
-- [ ] **P1.12 — ResultsScreen** *(depends: P1.7, P1.10)*
-  Photo thumbnail; calls `FoodClassifier.classifyImage(uri)`; label list with confidence bars; loading + error states. Nutrition card area present but in **"backend offline"** state (backend arrives in Phase 2).
-  **Verify:** emulator flow shows real ML Kit labels for a food photo.
+- [ ] **P1.13 — ResultsScreen (design: result peek / breakdown)** *(depends: P1.8, P1.11)*
+  Styled per `docs/DESIGN.md` §5 screens 4+6 + §6: photo top with Retake; sheet-styled breakdown — `PROBABLY · NN%` micro-label + top-1 name, "Which one is it?" list for the remaining labels with mono confidence percentages (radio-select swaps the shown food; low-confidence rows dimmed like the concept's "not food"); nutrition card (kcal + macro bars, per 100 g) in **"backend offline"** notice state for now (backend arrives in Phase 2; portion chip and Add-to-diary are P4.x). Loading + error states.
+  **Verify:** emulator flow shows real ML Kit labels for a food photo; visual check against DESIGN.md.
 
-- [ ] **P1.13 — Lint/typecheck green across workspaces**
+- [ ] **P1.14 — Lint/typecheck green across workspaces**
   **Verify:** `yarn lint` + `yarn typecheck` at root, zero errors.
 
-- [ ] **P1.14 — First-draft README**
-  Section order per brief §9: name + one-liner + demo GIF placeholder; "Why this exists" (honest, 2–3 sentences); architecture diagram placeholder; monorepo tour; native-modules explainer; running locally; CI/CD + APK install (placeholder until Phase 2); roadmap.
+- [ ] **P1.15 — First-draft README**
+  Section order per brief §9: name + one-liner + demo GIF placeholder; "Why this exists" (honest, 2–3 sentences); architecture diagram placeholder; monorepo tour; native-modules explainer; running locally; CI/CD + APK install (placeholder until Phase 2); roadmap. Mention the design system (`docs/DESIGN.md`) in the tour.
   **Verify:** all §9 sections present in order; honesty rule respected.
 
 - [ ] **H1 — *(human)* Device run + screenshot**
@@ -194,7 +202,7 @@
 ### C. App wiring
 
 - [ ] **P2.10 — Typed API client + env** *(depends: P2.1, P2.9)*
-  Small typed `fetch` wrapper in `apps/mobile/src/api` importing `packages/shared` types. Base URL + API key via `react-native-config` `.env`; `.env.example` committed. ResultsScreen: tapping a label → `GET /api/v1/nutrition/:food` → inline card (kcal, protein, carbs, fat per 100 g) with loading + error states; **classifications still render when the backend is unreachable**.
+  Small typed `fetch` wrapper in `apps/mobile/src/api` importing `packages/shared` types. Base URL + API key via `react-native-config` `.env`; `.env.example` committed. ResultsScreen: selecting a label (top-1 by default, or a "Which one is it?" alternative) → `GET /api/v1/nutrition/:food` → the nutrition card fills (kcal, protein, carbs, fat per 100 g, styled per `docs/DESIGN.md`) with loading + error states; **classifications still render when the backend is unreachable** (offline notice card).
   **Verify:** emulator against the compose stack — nutrition card fills; stop compose → offline state, labels intact.
 
 ### D. Tests + CI/CD
@@ -236,7 +244,7 @@
 ## Phase 3 — "iOS parity + infra + shine" *(optional)*
 
 - [ ] **P3.1 — Swift / Vision implementation**
-  Replace the P1.11 stub: `VNClassifyImageRequest` (built-in classifier — no model download, no key). Load image from file URI, run on a background queue, map `VNClassificationObservation` → `Classification`. Same contract: top 5, filter < 0.1, coded errors. Same MVP-tradeoff comment.
+  Replace the P1.12 stub: `VNClassifyImageRequest` (built-in classifier — no model download, no key). Load image from file URI, run on a background queue, map `VNClassificationObservation` → `Classification`. Same contract: top 5, filter < 0.1, coded errors. Same MVP-tradeoff comment.
   **Verify:** classification works in the iOS simulator.
 
 - [ ] **P3.2 — Full flow on iOS** *(depends: P3.1)*
@@ -244,7 +252,7 @@
   **Verify:** manual simulator flow end-to-end.
 
 - [ ] **P3.3 — HistoryScreen + MMKV**
-  Last 20 scans persisted locally with `react-native-mmkv`: thumbnail, top label, timestamp. Registered in navigation.
+  Last 20 scans persisted locally with `react-native-mmkv`: thumbnail, top label, timestamp. Registered in navigation. Styled as the design's diary-lite list rows (`docs/DESIGN.md` §6) — no targets/summary card (that's P4.2, which absorbs this screen).
   **Verify:** scans appear; kill + relaunch app → history intact.
 
 - [ ] **P3.4 — Terraform (validate-only)**
@@ -273,6 +281,42 @@
 
 ---
 
+## Phase 4 — design build-out *(optional, after Phase 3)*
+
+**Goal:** implement the rest of the design concept (`docs/DESIGN.md` §5) — Diary with daily targets, portion editing, search + manual logging, nutrition caching, Settings, tab-bar navigation. This phase extends the brief's scope; it must never regress the Phase 1–3 DoD, and the README/roadmap must stay honest about what's built.
+
+- [ ] **P4.1 — Floating glass tab bar**
+  Diary / Snap / Settings per `docs/DESIGN.md` (h78, r39, center 60px Snap button elevated −30px, glass.tabBar preset). Snap opens the capture flow modally; Diary becomes the home screen.
+  **Verify:** navigation works from all three tabs; visual check against the concept.
+
+- [ ] **P4.2 — Diary screen with daily targets** *(depends: P3.3, P4.1)*
+  Design screen 1: date header, kcal summary card (consumed / target, "left today", % mono), three macro target bars, "Logged today" rows (thumb · name · portion·time meta · kcal). Targets + entries in MMKV (extends the P3.3 store; HistoryScreen is absorbed by this screen). Entries come from "Add to diary" (P4.3).
+  **Verify:** add entries → totals, %, and "left today" math correct; persists across restarts.
+
+- [ ] **P4.3 — Portion editor + Add to diary** *(depends: P4.2)*
+  Design screen 5: − / + stepper, mono weight (tap to type), preset chips, THIS PORTION card recomputing kcal/macros live from `per100g`, time chip, "Add N g" CTA. Requires portion presets in the data model: extend `packages/shared` + `data/foods.json` with `servings: [{ label, grams }]` (e.g. "1 slice · 128 g") — gateway/nutrition-api pass them through. Results gains the portion chip + "Add to diary" CTA from the concept.
+  **Verify:** portion math matches per100g × grams; presets come from the API payload; added entry appears in Diary with grams + time.
+
+- [ ] **P4.4 — Search & manual log** *(depends: P4.2)*
+  Design screen 2: search field with live fuzzy results (`N OF 120 FOODS · FUZZY MATCH` micro-label), `+` to log via the portion editor, dashed "Enter it by hand" row → manual form (name, portion, four numbers) logging straight to Diary (works fully offline). Record the data-access decision in Verified Versions: new `GET /api/v1/foods?q=` through the gateway (recommended — keeps the DB server-side) vs bundling `foods.json` in the app.
+  **Verify:** "piz" surfaces pizza results with kcal/100 g; manual entry lands in Diary offline.
+
+- [ ] **P4.5 — Nutrition cache + "numbers came from cache"** *(depends: P4.2)*
+  MMKV cache of the last nutrition payload per food. When the gateway is unreachable: cached food → values + the concept's notice card ("The gateway didn't answer, so this is the last nutrition stored for X. Labels never needed the network."); uncached food → plain offline state. Replaces the MVP offline wording from P1.13.
+  **Verify:** with compose stack down — cached food shows values + notice; uncached shows offline state; labels always render.
+
+- [ ] **P4.6 — Settings screen** *(depends: P4.1)*
+  Design screen 7: DAILY TARGETS editor (kcal + macro grams, feeds P4.2); BACKEND card — gateway URL + API key overrides stored on-device (masked key with Show; `.env` stays the default), health dot polling gateway `/health`; default portion; "dim non-food labels" toggle (wired to the P1.13 dimming); "Clear diary & history" (destructive confirm → wipes MMKV); ON THIS DEVICE (classifier engine per platform, model status via `isAvailable()`, app version).
+  **Verify:** overrides take effect over `.env` without rebuild; health dot tracks compose up/down; clear wipes diary + history + cache.
+
+### Phase 4 — Definition of Done
+
+- [ ] All seven concept screens exist and are visually faithful to `docs/DESIGN.md` (side-by-side check against the export).
+- [ ] Snap → classify → portion → add to diary → targets update, end-to-end, including offline (cache notice when the gateway is down).
+- [ ] Phase 1–3 DoD checklists still pass (no regression: `yarn test`, lint/typecheck, compose flow, CI green).
+
+---
+
 ## Work Log *(append-only)*
 
 *One row per completed (or blocked) task. Newest at the bottom. Never edit or delete existing rows.*
@@ -280,3 +324,4 @@
 | Date | Session / agent | Task(s) | What was done | Verification evidence |
 |---|---|---|---|---|
 | 2026-07-29 | Claude Code (bootstrap) | — | Repo bootstrapped: brief copied in, this tracker + `CLAUDE.md` created, git initialized | Files present; initial commit |
+| 2026-07-29 | Claude Code (design integration) | — | Design concept adopted (`docs/DESIGN.md` extracted from the `FoodSnap App.dc.html` export): new P1.6 tokens/theme task, Capture/Results/History restyled to the concept, new optional Phase 4 (P4.1–P4.6). Phase 1 renumbered (old P1.6–P1.14 → P1.7–P1.15) — safe: no task had started | Tracker + DESIGN.md committed; counts updated |
