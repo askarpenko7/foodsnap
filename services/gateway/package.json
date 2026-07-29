@@ -1,0 +1,33 @@
+{
+  "name": "@foodsnap/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Public API gateway — the only entry point: api-key auth, rate limiting, routing to internal services",
+  "license": "MIT",
+  "author": "Alexander Karpenko (https://github.com/askarpenko7)",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch --onSuccess \"node dist/index.js\"",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "11.3.0",
+    "@fastify/http-proxy": "11.6.0",
+    "@fastify/rate-limit": "11.2.0",
+    "@foodsnap/shared": "workspace:*",
+    "fastify": "5.10.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "29.7.0",
+    "@types/jest": "29.5.14",
+    "@types/node": "24.10.1",
+    "jest": "29.7.0",
+    "ts-jest": "29.4.12",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3"
+  }
+}
