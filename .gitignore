@@ -55,3 +55,6 @@ ios/Pods/
 coverage/
 *.log
 /tmp/
+
+# Service builds
+dist/
