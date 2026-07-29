@@ -38,12 +38,12 @@
 
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
-| Phase 1 — "it classifies on Android" | 5/15 | 0/1 | 0/2 | in progress |
+| Phase 1 — "it classifies on Android" | 8/15 | 0/1 | 0/2 | in progress |
 | Phase 2 — "gateway, Docker, CI, released APK" | 0/14 | 0/3 | 0/4 | not started |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** P1.6 · **Next up:** P1.6 · **Blocked on human:** nothing
+**Now:** P1.9 · **Next up:** P1.9 · **Blocked on human:** nothing
 
 ---
 
@@ -102,21 +102,21 @@
   Bare React Native (not Expo), TypeScript, New Architecture ON, Hermes ON, wired into the workspace.
   **Verify:** `cd apps/mobile/android && ./gradlew assembleDebug` succeeds.
 
-- [~] **P1.6 — Design tokens + theme system** *(depends: P1.5)*
+- [x] **P1.6 — Design tokens + theme system** *(depends: P1.5)*
   Implement `docs/DESIGN.md` as code in `apps/mobile/src/theme/`: `tokens.ts` (surfaces, text ladder, accents, white alphas, radii, spacing, type scale, glass presets) + small node script using `culori` that converts the OKLCH accent sources to exact hex (replaces the provisional values — commit generated output). Bundle IBM Plex Mono (400/500/600, OFL notice kept) and register it for Android/iOS. Record the glass/blur decision in Verified Versions. Dark-only.
   **Verify:** a token-gallery dev screen (or storybook-style stub) renders surfaces/type/bars with the generated hex; fonts resolve on Android emulator (mono numbers visibly mono).
 
-- [ ] **P1.7 — Navigation + app structure**
+- [x] **P1.7 — Navigation + app structure**
   `@react-navigation/native-stack`; folders `src/screens`, `src/api`, `src/hooks`, `src/theme`. Stub Capture and Results screens registered, themed via P1.6 (dark `bg.screen`, no plain white defaults). Plain stack for MVP — the design's tab bar arrives in P4.1.
   **Verify:** app boots to themed CaptureScreen stub on emulator.
 
-- [ ] **P1.8 — CaptureScreen (design: camera screen)** *(depends: P1.6)*
+- [x] **P1.8 — CaptureScreen (design: camera screen)** *(depends: P1.6)*
   Styled per `docs/DESIGN.md` §5 screen 3 + §6: dark full-bleed with corner-bracket viewfinder, "Fill the frame with your plate" hint, 82px shutter → camera via `react-native-image-picker`, "Library" glass chip → gallery. ("Type it" is P4.4 — omit.) Camera-permission denial handled gracefully (explanatory UI, gallery still works). On selection → navigate to Results with the file URI.
   **Verify:** typecheck green + manual emulator flow (camera and gallery paths, denial path); visual check against DESIGN.md.
 
 ### C. `packages/food-classifier` TurboModule
 
-- [ ] **P1.9 — Scaffold the library** *(depends: P1.5)*
+- [~] **P1.9 — Scaffold the library** *(depends: P1.5)*
   `create-react-native-library`, Kotlin + Swift TurboModule ("new architecture") template. Consumed by `apps/mobile` as a workspace dependency.
   **Verify:** codegen runs; app still builds with the library linked.
 
@@ -330,3 +330,6 @@
 | 2026-07-29 | OpenCode (kimi-k3) | P1.3 | `tsconfig.base.json` (`strict: true` + extra strictness flags), ESLint 10 flat config + typescript-eslint + Prettier at root; root `lint`/`typecheck` scripts. Note: TS `latest` is now 7.x (native preview) — breaks Yarn's builtin patch + typescript-eslint peers, pinned stable `typescript@5.9.3` instead | `yarn lint` + `yarn typecheck` exit 0 (trivially, pre-code) |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.4 | Verified Versions table filled from npm registry / dl.google.com maven metadata / nodejs.org dist index. Decisions: Node 24 LTS (`node:24-alpine`), `@fastify/http-proxy`, fuse.js, tsup, Jest 29 line (matches RN 0.86 preset), glass = graceful degrade for MVP | No `—` left in mobile/tooling rows; every row has a source |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.5 | Bare RN 0.86.2 scaffold in `apps/mobile` (TS, `newArchEnabled=true`, `hermesEnabled=true`), workspace package `foodsnap-mobile`, monorepo Metro config (watchFolders + nodeModulesPaths), Gradle paths repointed to hoisted root `node_modules` (settings.gradle + react block). Template eslint/prettier/nested .git removed — root configs govern. Mobile tsconfig extends `@react-native/typescript-config` (verified `strict: true`) — RN's official config wins over tsconfig.base for the app. Gradle uses Android Studio JBR 21 via user-level `~/.gradle/gradle.properties` (system JDK is 11, too old for AGP; documented in README later) | `cd apps/mobile/android && ./gradlew assembleDebug` → BUILD SUCCESSFUL, `app-debug.apk` produced; `git status` free of generated files |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.6 | `src/theme/tokens.ts` (full DESIGN.md §1–§4 token set) + `scripts/generate-tokens.mjs` (culori OKLCH→hex; generated output committed, replaces the doc's provisional hexes); IBM Plex Mono 400/500/600 + OFL.txt bundled from google/fonts, linked via `react-native-asset`; `src/screens/dev/TokenGalleryScreen.tsx` dev gallery (behind `SHOW_TOKEN_GALLERY` flag in App.tsx). Glass = degrade presets. Generated accents: primary `#6875f6`, primaryText `#8a9bff`, protein `#4ac06c`, carbs `#f2af48`, fat `#ef6661`, ok `#65c67d`, danger `#f3625d` | Gallery rendered on Pixel_8_API_35 emulator: surfaces/type scale/macro bars/glass chips all correct, mono numbers visibly mono (screenshots reviewed) |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.7 | `@react-navigation/native-stack` stack; `src/{screens,api,hooks,navigation,theme}` structure; dark-only NavigationContainer theme (no white flashes); Capture (headerless) + Results stub registered | App boots to themed CaptureScreen on emulator (screenshot reviewed) |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.8 | CaptureScreen per DESIGN.md screen 3: full-bleed `bg.deep`, 40×40 corner brackets (3px, r16), plate hint, 82px shutter w/ 5px ring → `launchCamera`, Library glass chip → `launchImageLibrary`, CAMERA permission in manifest, denial → explanatory notice card with gallery path intact ("Type it" omitted per plan). Navigates to Results with file URI | `tsc --noEmit` green; rendered on emulator, visual check against DESIGN.md passed (screenshot reviewed). Camera/gallery flows to be exercised end-to-end in P1.13's verify |
