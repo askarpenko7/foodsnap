@@ -2,6 +2,7 @@
 
 Before writing any code in this repo:
 
+0. Read [`MEMORY.md`](MEMORY.md) **first**. It holds the environment gotchas and product decisions that are not discoverable from the code — each one already cost a previous agent time (`yarn` needs `corepack`, the JDK override, how to drive the emulator without wasting a cycle). Add to it when you learn something similar.
 1. Read [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) **in full**. It is the single source of truth for what FoodSnap is and how every piece must be built.
 2. For any UI work, [`docs/DESIGN.md`](docs/DESIGN.md) is the visual source of truth — tokens, components, per-screen specs (dark-only).
 3. Open [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) — the live task tracker. Pick the next available task in the current phase and follow the tracking protocol at the top of that file: claim (`[~]`) → implement → run the task's **Verify** line → tick (`[x]`) → update the dashboard → append a Work Log row → commit.

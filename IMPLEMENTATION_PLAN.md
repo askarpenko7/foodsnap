@@ -38,12 +38,12 @@
 
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
-| Phase 1 — "it classifies on Android" | 12/15 | 0/1 | 0/2 | in progress |
+| Phase 1 — "it classifies on Android" | 15/15 | 0/1 | 2/2 | agent work done — H1 (real device + screenshot) open |
 | Phase 2 — "gateway, Docker, CI, released APK" | 0/14 | 0/3 | 0/4 | not started |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** P1.13 · **Next up:** P1.13 · **Blocked on human:** nothing
+**Now:** nothing in progress · **Next up:** P2.1 (Phase 1 agent tasks + DoD are complete) · **Blocked on human:** H1 (real-device run + README screenshot — emulator screenshots are committed as interim), and H2 (create the GitHub repo) before CI can go green in P2.12
 
 ---
 
@@ -134,14 +134,14 @@
 
 ### D. Results + wrap-up
 
-- [~] **P1.13 — ResultsScreen (design: result peek / breakdown)** *(depends: P1.8, P1.11)*
+- [x] **P1.13 — ResultsScreen (design: result peek / breakdown)** *(depends: P1.8, P1.11)*
   Styled per `docs/DESIGN.md` §5 screens 4+6 + §6: photo top with Retake; sheet-styled breakdown — `PROBABLY · NN%` micro-label + top-1 name, "Which one is it?" list for the remaining labels with mono confidence percentages (radio-select swaps the shown food; low-confidence rows dimmed like the concept's "not food"); nutrition card (kcal + macro bars, per 100 g) in **"backend offline"** notice state for now (backend arrives in Phase 2; portion chip and Add-to-diary are P4.x). Loading + error states.
   **Verify:** emulator flow shows real ML Kit labels for a food photo; visual check against DESIGN.md.
 
-- [ ] **P1.14 — Lint/typecheck green across workspaces**
+- [x] **P1.14 — Lint/typecheck green across workspaces**
   **Verify:** `yarn lint` + `yarn typecheck` at root, zero errors.
 
-- [ ] **P1.15 — First-draft README**
+- [x] **P1.15 — First-draft README**
   Section order per brief §9: name + one-liner + demo GIF placeholder; "Why this exists" (honest, 2–3 sentences); architecture diagram placeholder; monorepo tour; native-modules explainer; running locally; CI/CD + APK install (placeholder until Phase 2); roadmap. Mention the design system (`docs/DESIGN.md`) in the tour.
   **Verify:** all §9 sections present in order; honesty rule respected.
 
@@ -150,8 +150,10 @@
 
 ### Phase 1 — Definition of Done *(brief §10, verbatim)*
 
-- [ ] Fresh clone → `yarn install` → documented run command → snap a photo → see labeled results on Android.
-- [ ] No backend yet (nutrition card shows a "backend offline" state).
+- [x] Fresh clone → `yarn install` → documented run command → snap a photo → see labeled results on Android.
+      *Verified on the running emulator via the README's exact command (`yarn workspace foodsnap-mobile android`): BUILD SUCCESSFUL → installed → gallery photo → `Pizza 95%` + 4 more labels. Not verified from a literally fresh clone — the one machine-level prerequisite is the `org.gradle.java.home` line the README documents (system JDK here is 11, too old for AGP).*
+- [x] No backend yet (nutrition card shows a "backend offline" state).
+      *Nutrition card renders the offline notice; labels come from the on-device module and never touch the network.*
 
 ---
 
@@ -336,3 +338,8 @@
 | 2026-07-29 | OpenCode (kimi-k3) | P1.9 + P1.10 | `packages/food-classifier` via create-react-native-library 0.63.0 (`--local --type turbo-module`; note: 0.63 only offers `kotlin-objc` for turbo-modules — Swift template was dropped, Swift arrives in P3.1 via standard ObjC interop). Spec per brief §3: `Classification { label, confidence }`, `classifyImage(uri): Promise<Classification[]>`, `isAvailable(): Promise<boolean>`. Consumed by `foodsnap-mobile` as workspace dep | Codegen ran during app build; generated `NativeFoodClassifierSpec.java` contains `classifyImage`/`isAvailable`; `assembleDebug` BUILD SUCCESSFUL; package typecheck green |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.11 | Kotlin module: ML Kit `image-labeling:17.0.9` (on-device default model), `InputImage.fromFilePath` → top 5 by confidence desc, `< 0.1` filtered, coded rejections `E_FILE_NOT_FOUND` / `E_CLASSIFICATION_FAILED`; threading + generic-labeler-vs-food-model tradeoff comments in code | End-to-end exercise deferred to P1.13 per its own Verify line; module compiles into the app build (BUILD SUCCESSFUL) |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.12 | ObjC stub matching codegen spec: `isAvailable` → NO, `classifyImage` rejects `E_CLASSIFICATION_FAILED` ("lands in Phase 3"). Env fix: system CocoaPods was broken (Homebrew Ruby 4.0 missing `ffi`) — used the template Gemfile with project-local `bundle config path vendor/bundle` (gitignored, `**/vendor/bundle/`) | `bundle exec pod install` → 79 pods incl. autolinked `FoodClassifier`; `xcodebuild -workspace … -destination 'generic/platform=iOS Simulator' build` exit 0; Android `assembleDebug` still green |
+| 2026-07-29 | Claude Code (review) | review of P1.1–P1.12 | All previously ticked tasks hold up — Kotlin module matches brief §3 exactly (top-5, `< 0.1` filtered, coded rejections, threading + tradeoff comments), tokens/theme faithful to DESIGN.md, no false claims in this log. **Two defects found:** (1) `yarn lint` failed with 11 `no-undef` errors — the flat config declared no Node globals for config files/scripts and no RN globals for app source; (2) Results was registered with a nav header, so the photo could not run full-bleed under the status bar the way DESIGN.md screen 4 requires. Both fixed under their owning tasks (P1.14 / P1.13) | `eslint . --format json` → 19 files, 0 errors; `yarn typecheck` green; screenshots compared against DESIGN.md |
+| 2026-07-29 | Claude Code | P1.13 | ResultsScreen finished from the previous session's WIP: full-bleed photo + safe-area-aware glass Retake chip, `PROBABLY · NN%` micro-label, "Which one is it?" radio list that swaps the shown food, per-100 g nutrition card in its backend-offline notice state, loading/error states with retry; `useClassifier` hook wraps the TurboModule call. Results made headerless. **Product fix:** ML Kit ranks category words above dishes (`Food 96%` > `Pizza 95%`), so the default selection would have sent `"food"` to the Phase 2 nutrition lookup — added a `GENERIC_LABELS` stop list that demotes those out of the default pick and dims them in the list, which is also what the concept's dimmed "not food" row implies. A stale `selectedIndex` could also survive a retry into a shorter result list; selection now resets on retry | Emulator (Pixel_8_API_35, live): gallery → real photo → `PROBABLY · 95%` / **Pizza**, with Food/Cuisine/Fast food dimmed and Cake (wrong but specific) left bright. Screenshots committed to `docs/screenshots/` |
+| 2026-07-29 | Claude Code | P1.14 | Root lint + typecheck green. Added `globals` devDep and two scoped ESLint blocks: Node globals for `*.config.*`/`scripts/**` (plus `no-require-imports` off there), RN/Hermes globals (`globals.browser` + `__DEV__`) for app and package source — the latter pre-empts the same failure when `fetch` arrives in P2.10 | `eslint . --format json` → 19 files, 0 errors, 0 warnings; `yarn typecheck` → both workspaces clean |
+| 2026-07-29 | Claude Code | P1.15 | `README.md` in brief §9 order: one-liner, emulator screenshot + GIF placeholder, honest "Why this exists" (built 2026, demonstration project, Phase 1 done / 2–3 ahead), **working Mermaid** architecture diagram with dashed edges for unbuilt phases (brought forward from P3.5), monorepo tour, a teaching section on the native module (spec → codegen → compile-time contract, ML Kit threading, the generic-labeler tradeoff), local run steps, Phase 2 CI/CD + APK placeholder, roadmap. Documents the machine-level `org.gradle.java.home` prerequisite the previous session hit (system JDK 11 is too old for AGP; Android Studio JBR is 21) | Facts verified, not assumed: JBR reports 21.0.10, system java 11.0.28, workspace really is `foodsnap-mobile`. Documented command run verbatim — `yarn workspace foodsnap-mobile android` → BUILD SUCCESSFUL, installed, app launched on emulator |
+| 2026-07-29 | Claude Code | Phase 1 DoD | Both DoD items ticked against a live emulator run of the documented command. Caveat recorded on the checklist: not run from a literally fresh clone, and the JDK prerequisite is machine-level. H1 (real-device run + final README screenshot) is still Alexander's | See P1.13/P1.15 rows |
