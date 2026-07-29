@@ -2,6 +2,12 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+// react-native-config: reads apps/mobile/.env at build time (the script resolves
+// it as $rootDir/../.env) and generates the BuildConfig fields that
+// `import Config from 'react-native-config'` exposes. The path is spelled out
+// because node_modules is hoisted to the workspace root in this monorepo.
+apply from: file("../../../../node_modules/react-native-config/android/dotenv.gradle")
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.

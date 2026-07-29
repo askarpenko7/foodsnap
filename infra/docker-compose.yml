@@ -1,0 +1,70 @@
+# Local FoodSnap backend: the gateway is the only thing reachable from the host.
+#
+#   cd infra
+#   cp .env.example .env      # then edit API_KEYS
+#   docker compose up --build
+#
+# Build context is the repo root so the services can pull in @foodsnap/shared.
+
+name: foodsnap
+
+services:
+  gateway:
+    build:
+      context: ..
+      dockerfile: services/gateway/Dockerfile
+    # The only published port in the stack — this is the public door.
+    ports:
+      - '${GATEWAY_PORT:-8080}:8080'
+    environment:
+      PORT: 8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      API_KEYS: ${API_KEYS:?set API_KEYS in infra/.env — see .env.example}
+      # Service name, not localhost: compose DNS resolves it on the internal network.
+      NUTRITION_API_URL: http://nutrition-api:3001
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-60}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      UPSTREAM_TIMEOUT_MS: ${UPSTREAM_TIMEOUT_MS:-3000}
+    depends_on:
+      nutrition-api:
+        condition: service_healthy
+    healthcheck:
+      # `node -e` rather than curl/wget: the runtime image has Node and nothing else.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  nutrition-api:
+    build:
+      context: ..
+      dockerfile: services/nutrition-api/Dockerfile
+    # Deliberately no `ports:` — reachable only from the gateway over the compose
+    # network. Publishing it would defeat the point of having a gateway.
+    expose:
+      - '3001'
+    environment:
+      PORT: 3001
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MATCH_THRESHOLD: ${MATCH_THRESHOLD:-0.45}
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped

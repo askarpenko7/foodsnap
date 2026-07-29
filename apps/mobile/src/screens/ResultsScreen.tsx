@@ -2,8 +2,9 @@
  * ResultsScreen — design concept screens 4 + 6 (docs/DESIGN.md §5/§6).
  * Photo top with Retake; sheet-styled breakdown: `PROBABLY · NN%` micro-label
  * + top-1 name, "Which one is it?" radio list (selecting swaps the shown food),
- * mono confidence percentages, low-relevance rows dimmed. Nutrition card shows
- * the "backend offline" notice state in Phase 1 — the API arrives in Phase 2.
+ * mono confidence percentages, low-relevance rows dimmed. Selecting a label
+ * looks its nutrition up through the gateway; every failure there degrades only
+ * the card, because the labels themselves never needed the network.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -21,6 +22,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { Classification } from 'react-native-food-classifier';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useClassifier } from '../hooks/useClassifier';
+import { useNutrition } from '../hooks/useNutrition';
+import { NutritionCard } from '../components/NutritionCard';
+import { Notice } from '../components/Notice';
 import { colors, glass, radii, spacing, type } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Results'>;
@@ -107,27 +111,6 @@ function RadioRow({
   );
 }
 
-function OfflineNutritionCard() {
-  return (
-    <View style={styles.nutritionCard}>
-      <View style={styles.nutritionHeader}>
-        <Text style={styles.nutritionMicro}>NUTRITION · PER 100 G</Text>
-      </View>
-      <View style={styles.notice}>
-        <View style={[styles.noticeDot, { backgroundColor: colors.macro.carbs }]} />
-        <View style={styles.noticeBody}>
-          <Text style={styles.noticeTitle}>Backend offline</Text>
-          <Text style={styles.noticeText}>
-            Nutrition facts come from the FoodSnap API, which isn’t part of the app yet — it
-            arrives with the gateway in Phase 2. Labels above were classified on-device and
-            never needed the network.
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export function ResultsScreen({ route }: Props) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -152,6 +135,10 @@ export function ResultsScreen({ route }: Props) {
     () => (state.status === 'ready' ? state.results[selectedIndex] : undefined),
     [state, selectedIndex],
   );
+
+  // Re-runs whenever the selection changes, so tapping an alternative looks up
+  // that food instead.
+  const { state: nutrition, retry: retryNutrition } = useNutrition(selected?.label);
 
   return (
     <View style={styles.screen}>
@@ -179,15 +166,11 @@ export function ResultsScreen({ route }: Props) {
 
         {state.status === 'error' && (
           <View style={styles.centerState}>
-            <View style={styles.notice}>
-              <View style={[styles.noticeDot, { backgroundColor: colors.status.danger }]} />
-              <View style={styles.noticeBody}>
-                <Text style={styles.noticeTitle}>Classification failed</Text>
-                <Text style={styles.noticeText}>
-                  {state.code}: {state.message}
-                </Text>
-              </View>
-            </View>
+            <Notice
+              tone={colors.status.danger}
+              title="Classification failed"
+              body={`${state.code}: ${state.message}`}
+            />
             <TouchableOpacity style={styles.retryButton} onPress={retryFromStart}>
               <Text style={styles.retryText}>Try again</Text>
             </TouchableOpacity>
@@ -234,7 +217,13 @@ export function ResultsScreen({ route }: Props) {
               </>
             )}
 
-            <OfflineNutritionCard />
+            {selected && (
+              <NutritionCard
+                state={nutrition}
+                food={selected.label}
+                onRetry={retryNutrition}
+              />
+            )}
           </ScrollView>
         )}
       </View>
@@ -333,26 +322,4 @@ const styles = StyleSheet.create({
   },
   radioLabel: { ...type.bodyEmphasis, color: colors.text.primary, flex: 1 },
   radioConfidence: { ...type.monoValue, color: colors.text.secondary },
-  nutritionCard: {
-    backgroundColor: colors.surface.card,
-    borderRadius: radii.card,
-    padding: spacing.cardPadding,
-    gap: 14,
-    marginTop: spacing.sectionGap,
-  },
-  nutritionHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  nutritionMicro: { ...type.microLabel, color: colors.text.tertiary },
-  notice: {
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: colors.fill.subtle,
-    borderColor: colors.bar.track,
-    borderWidth: 1,
-    borderRadius: radii.row,
-    padding: 14,
-  },
-  noticeDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
-  noticeBody: { flex: 1, gap: 2 },
-  noticeTitle: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
-  noticeText: { ...type.caption, color: colors.text.secondary },
 });

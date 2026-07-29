@@ -16,6 +16,7 @@ import {
   type ImagePickerResponse,
 } from 'react-native-image-picker';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { Notice } from '../components/Notice';
 import { colors, glass, radii, spacing, type } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Capture'>;
@@ -110,25 +111,18 @@ export function CaptureScreen() {
           </View>
           <Text style={styles.hint}>Fill the frame with your plate</Text>
           {cameraDenied && (
-            <View style={styles.notice}>
-              <View style={[styles.noticeDot, { backgroundColor: colors.status.danger }]} />
-              <View style={styles.noticeBody}>
-                <Text style={styles.noticeTitle}>Camera access is off</Text>
-                <Text style={styles.noticeText}>
-                  FoodSnap needs the camera to snap your plate. You can enable it in system
-                  settings — or pick a photo from your library instead.
-                </Text>
-              </View>
-            </View>
+            <Notice
+              tone={colors.status.danger}
+              title="Camera access is off"
+              body="FoodSnap needs the camera to snap your plate. You can enable it in system settings — or pick a photo from your library instead."
+            />
           )}
           {pickerError && !cameraDenied && (
-            <View style={styles.notice}>
-              <View style={[styles.noticeDot, { backgroundColor: colors.status.danger }]} />
-              <View style={styles.noticeBody}>
-                <Text style={styles.noticeTitle}>Couldn’t open the picker</Text>
-                <Text style={styles.noticeText}>{pickerError}</Text>
-              </View>
-            </View>
+            <Notice
+              tone={colors.status.danger}
+              title="Couldn’t open the picker"
+              body={pickerError}
+            />
           )}
         </View>
 
@@ -180,19 +174,6 @@ const styles = StyleSheet.create({
   cornerBL: { bottom: 0, left: 0, borderBottomLeftRadius: 16 },
   cornerBR: { bottom: 0, right: 0, borderBottomRightRadius: 16 },
   hint: { ...type.body, color: colors.text.secondary, textAlign: 'center' },
-  notice: {
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: colors.fill.subtle,
-    borderColor: colors.bar.track,
-    borderWidth: 1,
-    borderRadius: radii.row,
-    padding: 14,
-  },
-  noticeDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
-  noticeBody: { flex: 1, gap: 2 },
-  noticeTitle: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
-  noticeText: { ...type.caption, color: colors.text.secondary },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',

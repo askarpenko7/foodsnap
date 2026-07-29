@@ -1,0 +1,19 @@
+node_modules
+**/node_modules
+.yarn/cache
+.yarn/install-state.gz
+.git
+.github
+
+# Nothing mobile belongs in a backend image
+apps/mobile/android
+apps/mobile/ios
+apps/mobile/src
+apps/mobile/vendor
+
+**/dist
+**/build
+**/.gradle
+docs
+*.md
+!README.md
