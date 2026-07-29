@@ -38,12 +38,12 @@
 
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
-| Phase 1 — "it classifies on Android" | 0/15 | 0/1 | 0/2 | not started |
+| Phase 1 — "it classifies on Android" | 1/15 | 0/1 | 0/2 | in progress |
 | Phase 2 — "gateway, Docker, CI, released APK" | 0/14 | 0/3 | 0/4 | not started |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** nothing in progress · **Next up:** P1.1 · **Blocked on human:** nothing
+**Now:** P1.2 · **Next up:** P1.2 · **Blocked on human:** nothing
 
 ---
 
@@ -80,11 +80,11 @@
 
 ### A. Monorepo skeleton
 
-- [ ] **P1.1 — Repo hygiene**
+- [x] **P1.1 — Repo hygiene**
   `.gitignore` covering Node, Metro, Android (`build/`, `.gradle/`, `local.properties`, `*.keystore`), iOS (`Pods/`, `DerivedData/`), and `.env*` (except `.env.example`). MIT `LICENSE` (Alexander Karpenko).
   **Verify:** `LICENSE` at root; after later builds `git status` stays free of generated files.
 
-- [ ] **P1.2 — Yarn workspaces root**
+- [~] **P1.2 — Yarn workspaces root**
   Yarn Berry with `.yarnrc.yml` → `nodeLinker: node-modules` (RN tooling needs physical `node_modules`; no PnP, no pnpm). Root `package.json` (private) with workspaces `apps/*`, `packages/*`, `services/*`.
   **Verify:** `yarn install` succeeds; `node_modules/` is a real directory.
 
@@ -325,3 +325,4 @@
 |---|---|---|---|---|
 | 2026-07-29 | Claude Code (bootstrap) | — | Repo bootstrapped: brief copied in, this tracker + `CLAUDE.md` created, git initialized | Files present; initial commit |
 | 2026-07-29 | Claude Code (design integration) | — | Design concept adopted (`docs/DESIGN.md` extracted from the `FoodSnap App.dc.html` export): new P1.6 tokens/theme task, Capture/Results/History restyled to the concept, new optional Phase 4 (P4.1–P4.6). Phase 1 renumbered (old P1.6–P1.14 → P1.7–P1.15) — safe: no task had started | Tracker + DESIGN.md committed; counts updated |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.1 | `.gitignore` (Node, Metro, Android, iOS, `.env*` except `.env.example`) + MIT `LICENSE` (Alexander Karpenko) | `LICENSE` at root; `git status` shows only intended files |
