@@ -39,16 +39,17 @@
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
 | Phase 1 — "it classifies on Android" | 15/15 | 0/1 | 2/2 | agent work done — H1 (real device + screenshot) open |
-| Phase 2 — "gateway, Docker, CI, released APK" | 14/14 | 0/3 | 2/4 | all agent tasks done · remaining DoD needs the GitHub repo (H2–H4) |
+| Phase 2 — "gateway, Docker, CI, released APK" | 14/14 | 1/3 | 3/4 | pushed, CI green · last DoD item needs the keystore + tag (H3/H4) |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
 **Now:** nothing in progress · **Next up:** P3.1 (Swift/Vision) — every Phase 2 agent task is done and verified
 
-**Blocked on human:** the last two Phase 2 DoD items are GitHub-side and cannot be done from here.
+**Repo:** https://github.com/askarpenko7/foodsnap · `main` pushed, CI green.
+
+**Blocked on human:**
+- **H3/H4** — generate the release keystore and add the 4 repository secrets (credentials, so Alexander only), then tag `v0.1.0`. This is the last Phase 2 DoD item.
 - **H1** — real-device run + README screenshot (emulator screenshots are committed as interim).
-- **H2** — create the public GitHub repo; CI cannot go green until there is a remote.
-- **H3/H4** — release keystore + the 4 secrets, then tag `v0.1.0`.
 
 ---
 
@@ -232,7 +233,7 @@
   How to generate the keystore (`keytool -genkeypair …`), set the 4 repo secrets, and sideload the APK — explicitly framed as *distributing a signed native app outside official stores*.
   **Verify:** a reader could produce the keystore + secrets from the doc alone.
 
-- [ ] **H2 — *(human)* Create GitHub repo**
+- [x] **H2 — *(human)* Create GitHub repo**
   Public repo `askarpenko7/foodsnap`, MIT; push this repo there.
 
 - [ ] **H3 — *(human)* Keystore + secrets**
@@ -249,8 +250,8 @@
       *Verified by curl and by test: no key, wrong key and a valid key all behave correctly, and a wrong key is byte-identical to a missing one.*
 - [ ] Pushing tag `v0.1.0` → GitHub Release with installable APK.
       *Blocked on H2–H4. The mechanism is verified locally: a signed release APK built with a throwaway keystore reports `CN=FoodSnap Release Test`, the debug-signing fallback is caught by the workflow's guard, and the tag-derived version lands in the APK (versionCode 42, versionName 0.1.0). Only the GitHub-side publish is untested.*
-- [ ] CI green.
-      *Blocked on H2 (no remote yet). The three steps the workflow runs — `yarn typecheck`, `yarn lint`, `yarn test` — all pass locally, and both workflow files parse as valid YAML.*
+- [x] CI green.
+      *[Run 30498818827](https://github.com/askarpenko7/foodsnap/actions/runs/30498818827) — every step passing on `a09100b`. The first run failed and the fix is recorded in the Work Log.*
 
 ---
 
@@ -363,3 +364,4 @@
 | 2026-07-30 | Claude Code | P2.14 | README rewritten for the Phase 2 reality: new "The backend" section explaining the gateway/service split and why each control exists, out-of-store distribution documented end to end (keytool, base64, the four secrets, cutting a tag, sideloading including the per-source "unknown apps" permission and the Play Protect prompt), architecture diagram de-dashed, local run steps for both compose and bare-node, and the `10.0.2.2` emulator gotcha called out | Section order still matches brief §9; no stale "Phase 2 is coming" claims remain; hero screenshot replaced with the one showing live nutrition |
 | 2026-07-30 | Claude Code | P2.8, P2.9 | **Unblocked** — Alexander installed Docker (29.6.2, Compose v5.3.1). Both images build and the compose stack runs. **Bug found on the first build: images were 552/560 MB** because the runtime stage was `FROM deps`; Docker layers are additive, so every dev dependency stayed in the image regardless of what `yarn workspaces focus --production` pruned afterwards. Runtime stages now start from a clean `node:24-alpine` and reinstall prod-only deps | 253 MB / 257 MB after the fix (was 552/560). Containers run as `uid=1000(node)` with node as PID 1; `docker stop` returns in 0s and logs "shutting down", so exec-form CMD really does deliver SIGTERM. Compose: nutrition-api goes `Waiting → Healthy` before the gateway starts; gateway published `0.0.0.0:8080->8080`, nutrition-api bare `3001/tcp` and refused from the host; valid key → 200, wrong key → 401 |
 | 2026-07-30 | Claude Code | Phase 2 DoD | Two of four items now pass. The compose DoD item was re-verified properly: emulator → gateway container → nutrition-api container → Pizza 266 kcal / 11 g protein, with one gateway request id (`gw-472efdf6…`) traced into the internal service's own logs. The remaining two items (GitHub Release from a tag, CI green) are GitHub-side and blocked on H2–H4 | See the P2.8/P2.9 row; screenshot in `docs/screenshots/` |
+| 2026-07-30 | Claude Code | H2 (assisted), CI green | Pushed to https://github.com/askarpenko7/foodsnap. Before pushing, rewrote all 18 commits from the placeholder `noreply@mail.com` to the GitHub noreply address `9066318+askarpenko7@users.noreply.github.com`, so they link to Alexander's profile and contribution graph — worth catching pre-push, since afterwards it needs a force-push. Also found that the machine's SSH key authenticates as a *different* account (`alexander-karpenko-at-fooda`), so HTTPS was used, where Git Credential Manager already held the `askarpenko7` credential. **The first CI run failed**: `actions/setup-node`'s `cache: yarn` shells out to `yarn` to find the cache folder, but Corepack was enabled in the *next* step, so yarn did not exist yet. Nothing local could have caught it — yarn is on PATH here. Fixed by installing Node, enabling Corepack, then re-running setup-node for the cache; `release-android.yml` had the identical ordering and was fixed too | Tree hash identical before/after the rewrite (metadata only, 18 commits both sides). [Run 30498818827](https://github.com/askarpenko7/foodsnap/actions/runs/30498818827): checkout, setup-node, Corepack, setup-node, install, typecheck, lint, test — all green. GitHub confirms the latest commit is linked to user `askarpenko7` |
