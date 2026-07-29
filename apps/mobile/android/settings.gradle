@@ -1,0 +1,8 @@
+// Monorepo: JS dependencies are hoisted to the workspace root (Yarn workspaces,
+// nodeLinker: node-modules), three levels up from this file — resolve from there.
+pluginManagement { includeBuild("../../../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+rootProject.name = 'FoodSnap'
+include ':app'
+includeBuild("../../../node_modules/@react-native/gradle-plugin")

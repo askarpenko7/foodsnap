@@ -38,12 +38,12 @@
 
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
-| Phase 1 — "it classifies on Android" | 4/15 | 0/1 | 0/2 | in progress |
+| Phase 1 — "it classifies on Android" | 5/15 | 0/1 | 0/2 | in progress |
 | Phase 2 — "gateway, Docker, CI, released APK" | 0/14 | 0/3 | 0/4 | not started |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** P1.5 · **Next up:** P1.5 · **Blocked on human:** nothing
+**Now:** P1.6 · **Next up:** P1.6 · **Blocked on human:** nothing
 
 ---
 
@@ -98,11 +98,11 @@
 
 ### B. React Native app scaffold + design system
 
-- [~] **P1.5 — Scaffold `apps/mobile`** *(depends: P1.2–P1.4)*
+- [x] **P1.5 — Scaffold `apps/mobile`** *(depends: P1.2–P1.4)*
   Bare React Native (not Expo), TypeScript, New Architecture ON, Hermes ON, wired into the workspace.
   **Verify:** `cd apps/mobile/android && ./gradlew assembleDebug` succeeds.
 
-- [ ] **P1.6 — Design tokens + theme system** *(depends: P1.5)*
+- [~] **P1.6 — Design tokens + theme system** *(depends: P1.5)*
   Implement `docs/DESIGN.md` as code in `apps/mobile/src/theme/`: `tokens.ts` (surfaces, text ladder, accents, white alphas, radii, spacing, type scale, glass presets) + small node script using `culori` that converts the OKLCH accent sources to exact hex (replaces the provisional values — commit generated output). Bundle IBM Plex Mono (400/500/600, OFL notice kept) and register it for Android/iOS. Record the glass/blur decision in Verified Versions. Dark-only.
   **Verify:** a token-gallery dev screen (or storybook-style stub) renders surfaces/type/bars with the generated hex; fonts resolve on Android emulator (mono numbers visibly mono).
 
@@ -329,3 +329,4 @@
 | 2026-07-29 | OpenCode (kimi-k3) | P1.2 | Yarn Berry 4.9.2 via Corepack (`packageManager` field), `.yarnrc.yml` → `nodeLinker: node-modules`, root `package.json` (private, workspaces `apps/* packages/* services/*`) | `yarn install` succeeded; `node_modules/` is a real directory |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.3 | `tsconfig.base.json` (`strict: true` + extra strictness flags), ESLint 10 flat config + typescript-eslint + Prettier at root; root `lint`/`typecheck` scripts. Note: TS `latest` is now 7.x (native preview) — breaks Yarn's builtin patch + typescript-eslint peers, pinned stable `typescript@5.9.3` instead | `yarn lint` + `yarn typecheck` exit 0 (trivially, pre-code) |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.4 | Verified Versions table filled from npm registry / dl.google.com maven metadata / nodejs.org dist index. Decisions: Node 24 LTS (`node:24-alpine`), `@fastify/http-proxy`, fuse.js, tsup, Jest 29 line (matches RN 0.86 preset), glass = graceful degrade for MVP | No `—` left in mobile/tooling rows; every row has a source |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.5 | Bare RN 0.86.2 scaffold in `apps/mobile` (TS, `newArchEnabled=true`, `hermesEnabled=true`), workspace package `foodsnap-mobile`, monorepo Metro config (watchFolders + nodeModulesPaths), Gradle paths repointed to hoisted root `node_modules` (settings.gradle + react block). Template eslint/prettier/nested .git removed — root configs govern. Mobile tsconfig extends `@react-native/typescript-config` (verified `strict: true`) — RN's official config wins over tsconfig.base for the app. Gradle uses Android Studio JBR 21 via user-level `~/.gradle/gradle.properties` (system JDK is 11, too old for AGP; documented in README later) | `cd apps/mobile/android && ./gradlew assembleDebug` → BUILD SUCCESSFUL, `app-debug.apk` produced; `git status` free of generated files |
