@@ -1,0 +1,35 @@
+{
+  "name": "react-native-food-classifier",
+  "version": "0.0.0",
+  "private": true,
+  "description": "On-device food image classification TurboModule (ML Kit on Android, Vision on iOS)",
+  "main": "src/index",
+  "codegenConfig": {
+    "name": "FoodClassifierSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.foodclassifier"
+    }
+  },
+  "author": "Alexander Karpenko (https://github.com/askarpenko7)",
+  "license": "MIT",
+  "homepage": "https://github.com/askarpenko7/foodsnap#readme",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "react-native": "0.86.2",
+    "typescript": "5.9.3"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "create-react-native-library": {
+    "type": "turbo-module",
+    "languages": "kotlin-objc",
+    "tools": [],
+    "version": "0.63.0"
+  }
+}

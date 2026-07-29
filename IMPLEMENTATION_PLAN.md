@@ -38,12 +38,12 @@
 
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
-| Phase 1 — "it classifies on Android" | 8/15 | 0/1 | 0/2 | in progress |
+| Phase 1 — "it classifies on Android" | 12/15 | 0/1 | 0/2 | in progress |
 | Phase 2 — "gateway, Docker, CI, released APK" | 0/14 | 0/3 | 0/4 | not started |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** P1.9 · **Next up:** P1.9 · **Blocked on human:** nothing
+**Now:** P1.13 · **Next up:** P1.13 · **Blocked on human:** nothing
 
 ---
 
@@ -116,25 +116,25 @@
 
 ### C. `packages/food-classifier` TurboModule
 
-- [~] **P1.9 — Scaffold the library** *(depends: P1.5)*
+- [x] **P1.9 — Scaffold the library** *(depends: P1.5)*
   `create-react-native-library`, Kotlin + Swift TurboModule ("new architecture") template. Consumed by `apps/mobile` as a workspace dependency.
   **Verify:** codegen runs; app still builds with the library linked.
 
-- [ ] **P1.10 — TS spec (codegen) exactly per brief §3**
+- [x] **P1.10 — TS spec (codegen) exactly per brief §3**
   `Classification { label: string; confidence: number }`; `classifyImage(uri: string): Promise<Classification[]>`; `isAvailable(): Promise<boolean>`.
   **Verify:** codegen output contains the spec; typecheck green.
 
-- [ ] **P1.11 — Kotlin / ML Kit implementation** *(depends: P1.10)*
+- [x] **P1.11 — Kotlin / ML Kit implementation** *(depends: P1.10)*
   ML Kit Image Labeling, on-device default model — no API key, no network. `InputImage.fromFilePath(context, uri)` → labeler → top **5** by confidence desc, filter `< 0.1`. Coded rejections: `E_FILE_NOT_FOUND`, `E_CLASSIFICATION_FAILED`. Work off the UI thread; resolve/reject per TurboModule threading conventions. Code comment on the generic-labeler-vs-food-model MVP tradeoff (interview material, brief §3).
   **Verify:** exercised end-to-end via P1.13 on emulator with a real photo.
 
-- [ ] **P1.12 — iOS stub (keep iOS compiling)**
+- [x] **P1.12 — iOS stub (keep iOS compiling)**
   Swift side: `isAvailable()` → `false`; `classifyImage` rejects `E_CLASSIFICATION_FAILED` ("iOS implementation lands in Phase 3"). Real Vision impl is P3.1.
   **Verify:** iOS target still builds (`pod install` + build check); no Android regression.
 
 ### D. Results + wrap-up
 
-- [ ] **P1.13 — ResultsScreen (design: result peek / breakdown)** *(depends: P1.8, P1.11)*
+- [~] **P1.13 — ResultsScreen (design: result peek / breakdown)** *(depends: P1.8, P1.11)*
   Styled per `docs/DESIGN.md` §5 screens 4+6 + §6: photo top with Retake; sheet-styled breakdown — `PROBABLY · NN%` micro-label + top-1 name, "Which one is it?" list for the remaining labels with mono confidence percentages (radio-select swaps the shown food; low-confidence rows dimmed like the concept's "not food"); nutrition card (kcal + macro bars, per 100 g) in **"backend offline"** notice state for now (backend arrives in Phase 2; portion chip and Add-to-diary are P4.x). Loading + error states.
   **Verify:** emulator flow shows real ML Kit labels for a food photo; visual check against DESIGN.md.
 
@@ -333,3 +333,6 @@
 | 2026-07-29 | OpenCode (kimi-k3) | P1.6 | `src/theme/tokens.ts` (full DESIGN.md §1–§4 token set) + `scripts/generate-tokens.mjs` (culori OKLCH→hex; generated output committed, replaces the doc's provisional hexes); IBM Plex Mono 400/500/600 + OFL.txt bundled from google/fonts, linked via `react-native-asset`; `src/screens/dev/TokenGalleryScreen.tsx` dev gallery (behind `SHOW_TOKEN_GALLERY` flag in App.tsx). Glass = degrade presets. Generated accents: primary `#6875f6`, primaryText `#8a9bff`, protein `#4ac06c`, carbs `#f2af48`, fat `#ef6661`, ok `#65c67d`, danger `#f3625d` | Gallery rendered on Pixel_8_API_35 emulator: surfaces/type scale/macro bars/glass chips all correct, mono numbers visibly mono (screenshots reviewed) |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.7 | `@react-navigation/native-stack` stack; `src/{screens,api,hooks,navigation,theme}` structure; dark-only NavigationContainer theme (no white flashes); Capture (headerless) + Results stub registered | App boots to themed CaptureScreen on emulator (screenshot reviewed) |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.8 | CaptureScreen per DESIGN.md screen 3: full-bleed `bg.deep`, 40×40 corner brackets (3px, r16), plate hint, 82px shutter w/ 5px ring → `launchCamera`, Library glass chip → `launchImageLibrary`, CAMERA permission in manifest, denial → explanatory notice card with gallery path intact ("Type it" omitted per plan). Navigates to Results with file URI | `tsc --noEmit` green; rendered on emulator, visual check against DESIGN.md passed (screenshot reviewed). Camera/gallery flows to be exercised end-to-end in P1.13's verify |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.9 + P1.10 | `packages/food-classifier` via create-react-native-library 0.63.0 (`--local --type turbo-module`; note: 0.63 only offers `kotlin-objc` for turbo-modules — Swift template was dropped, Swift arrives in P3.1 via standard ObjC interop). Spec per brief §3: `Classification { label, confidence }`, `classifyImage(uri): Promise<Classification[]>`, `isAvailable(): Promise<boolean>`. Consumed by `foodsnap-mobile` as workspace dep | Codegen ran during app build; generated `NativeFoodClassifierSpec.java` contains `classifyImage`/`isAvailable`; `assembleDebug` BUILD SUCCESSFUL; package typecheck green |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.11 | Kotlin module: ML Kit `image-labeling:17.0.9` (on-device default model), `InputImage.fromFilePath` → top 5 by confidence desc, `< 0.1` filtered, coded rejections `E_FILE_NOT_FOUND` / `E_CLASSIFICATION_FAILED`; threading + generic-labeler-vs-food-model tradeoff comments in code | End-to-end exercise deferred to P1.13 per its own Verify line; module compiles into the app build (BUILD SUCCESSFUL) |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.12 | ObjC stub matching codegen spec: `isAvailable` → NO, `classifyImage` rejects `E_CLASSIFICATION_FAILED` ("lands in Phase 3"). Env fix: system CocoaPods was broken (Homebrew Ruby 4.0 missing `ffi`) — used the template Gemfile with project-local `bundle config path vendor/bundle` (gitignored, `**/vendor/bundle/`) | `bundle exec pod install` → 79 pods incl. autolinked `FoodClassifier`; `xcodebuild -workspace … -destination 'generic/platform=iOS Simulator' build` exit 0; Android `assembleDebug` still green |

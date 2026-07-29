@@ -41,6 +41,11 @@ ios/Pods/
 *.dSYM.zip
 *.dSYM
 
+# Ruby / Bundler (iOS pods)
+.bundle/
+**/vendor/bundle/
+**/.xcode.env.local
+
 # Env / secrets
 .env
 .env.*
