@@ -17,17 +17,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node first, then Corepack, then Node again for the cache. The second call
+      # is nearly free (the toolchain is already installed) but it is the only
+      # ordering that works: `cache: yarn` shells out to `yarn` to locate the
+      # cache folder, and `yarn` does not exist until Corepack has enabled it.
       - uses: actions/setup-node@v4
         with:
           # Matches the Docker base image and the tsup target (see the Verified
           # Versions table in IMPLEMENTATION_PLAN.md).
           node-version: 24
-          # Yarn 4 comes from the packageManager field via Corepack; this caches
-          # the global Yarn cache keyed on yarn.lock.
-          cache: yarn
 
       - name: Enable Corepack
         run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
 
       - name: Install
         # --immutable fails the build if yarn.lock would have to change, which is

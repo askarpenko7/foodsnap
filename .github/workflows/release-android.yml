@@ -17,13 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Same three-step dance as ci.yml: `cache: yarn` needs the yarn binary,
+      # which only exists once Corepack has been enabled.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: yarn
-
-      - name: Enable Corepack
-        run: corepack enable
 
       # AGP requires 17+; 21 matches what the project builds with locally.
       - name: Set up JDK 21
