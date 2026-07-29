@@ -1,0 +1,123 @@
+name: Release Android APK
+
+# The out-of-store distribution story: tag a version, get a signed APK attached
+# to a GitHub Release that anyone can sideload.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  # Needed to create the release and upload the APK.
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish signed APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      # AGP requires 17+; 21 matches what the project builds with locally.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install
+        run: yarn install --immutable
+
+      - name: Derive version from tag
+        id: version
+        # refs/tags/v0.1.0 -> 0.1.0. versionCode must increase monotonically for
+        # Android to treat a build as an upgrade; the run number does that
+        # without needing to parse semver into an integer.
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "name=$version" >> "$GITHUB_OUTPUT"
+          echo "Building $version (versionCode ${GITHUB_RUN_NUMBER})"
+
+      - name: Write .env for the build
+        # react-native-config bakes these into the APK at build time. The URL is
+        # a build input, not a secret; the key is one.
+        run: |
+          cat > apps/mobile/.env <<EOF
+          GATEWAY_URL=${{ vars.GATEWAY_URL || 'http://10.0.2.2:8080' }}
+          API_KEY=${{ secrets.API_KEY }}
+          EOF
+
+      - name: Decode signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        # Written outside the repo tree so it cannot be picked up by a build
+        # artifact or committed by accident.
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set. See the README section on out-of-store distribution."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+
+      - name: Build signed release APK
+        working-directory: apps/mobile/android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          APP_VERSION_NAME: ${{ steps.version.outputs.name }}
+          APP_VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Verify the APK is signed with the release key
+        # build.gradle falls back to debug signing when the keystore env is absent,
+        # so that a plain local `assembleRelease` still works. In CI that fallback
+        # would silently ship an APK nobody can upgrade from — so assert it did
+        # not happen. Verified against a real debug-signed APK: the DN is
+        # "CN=Android Debug, OU=Android, ...".
+        run: |
+          set -o pipefail
+          apk=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          # Several build-tools versions can be installed; a bare glob would pass
+          # the extras to apksigner as arguments and verify nothing.
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$apksigner" verify --print-certs "$apk" > certs.txt
+          cat certs.txt
+          if grep -qi "CN=Android Debug" certs.txt; then
+            echo "::error::APK is debug-signed — the release signing config did not apply."
+            exit 1
+          fi
+
+      - name: Name the artifact after the version
+        id: artifact
+        run: |
+          out="foodsnap-${{ steps.version.outputs.name }}.apk"
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk "$out"
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+
+      - name: Create the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: FoodSnap ${{ steps.version.outputs.name }}
+          files: ${{ steps.artifact.outputs.path }}
+          generate_release_notes: true
+          body: |
+            Signed Android APK, distributed outside the app stores.
+
+            **Install:** download the `.apk` below, then allow installs from your
+            browser or file manager when Android prompts. See the README for the
+            full walkthrough and how this build is signed.
+
+            Built from `${{ github.sha }}` by
+            [this run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
