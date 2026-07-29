@@ -2,11 +2,11 @@
 
 Point your camera at food, get labels from an on-device classifier, then nutrition facts from a gateway-fronted TypeScript backend.
 
-<!-- TODO(H5): 10–15 s demo GIF goes here once the Phase 2 flow is recorded. -->
+<!-- TODO(H5): 10–15 s demo GIF goes here. -->
 
-![Capture and result screens running on an Android emulator](docs/screenshots/results-android-emulator.png)
+![The result screen on an Android emulator: ML Kit labels and nutrition facts](docs/screenshots/results-nutrition-android-emulator.png)
 
-*Android emulator, Phase 1: ML Kit labels a real photo on-device. The nutrition card sits in its "backend offline" state because the API arrives in Phase 2.*
+*Android emulator. ML Kit labelled the photo on-device; the macros came from the nutrition service through the gateway. "Food", "Cuisine" and "Fast food" are dimmed because they are category words, not dishes — see the tradeoff below.*
 
 ## Why this exists
 
@@ -14,7 +14,7 @@ I built this in 2026 to have a compact, honest example of an architecture I work
 
 It is a deliberately scoped demonstration project, not a product, and not something with years of history behind it. Where I chose the cheap path over the correct-at-scale path, the code says so in a comment.
 
-**Status:** Phase 1 is done — the Android app classifies real photos on-device. Phase 2 (gateway, nutrition API, Docker, CI, signed APK releases) and Phase 3 (iOS/Vision parity, history, Terraform) are next. Progress lives in [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
+**Status:** the Android app classifies photos on-device and fetches nutrition through the gateway. Phase 3 (iOS/Vision parity, on-device history, Terraform) is next, and the Docker images are written but unverified — see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md), which tracks every task and what was actually checked.
 
 ## Architecture
 
@@ -30,19 +30,19 @@ flowchart LR
         tm -.->|"Phase 3"| vision
     end
 
-    subgraph backend["Backend (Phase 2)"]
+    subgraph backend["Backend"]
         gw["services/gateway<br/>auth · rate limit · routing"]
         api["services/nutrition-api<br/>fuzzy match over foods.json"]
-        gw --> api
+        gw -->|"internal network only"| api
     end
 
-    app -.->|"GET /api/v1/nutrition/:food<br/>x-api-key — Phase 2"| gw
+    app -->|"GET /api/v1/nutrition/:food<br/>x-api-key"| gw
     shared["packages/shared<br/>API contract types"] -.- app
     shared -.- gw
     shared -.- api
 ```
 
-Solid arrows exist today; dashed ones are the phases still ahead.
+Solid arrows exist today; the dashed one to Vision is Phase 3, and the dashed lines to `packages/shared` are compile-time only — it is types, not a runtime dependency.
 
 The split matters: **classification never touches the network**, so the app is useful offline and there is no per-request inference cost. Only the nutrition lookup crosses the wire, and it goes through a gateway that owns auth and rate limiting rather than letting the app talk to the data service directly.
 
@@ -56,11 +56,13 @@ apps/mobile/              React Native app (TypeScript, New Architecture, Hermes
   src/theme/              design tokens — code form of docs/DESIGN.md
   src/hooks/              useClassifier — wraps the native module call
   src/navigation/         native-stack, dark-only
+  src/lib/                label ranking — the generic-label stop list, tested
+  src/api/                typed gateway client
 packages/food-classifier/ TurboModule: TS spec + Kotlin (ML Kit) + iOS stub
-packages/shared/          API contract types shared by app and services  [Phase 2]
-services/gateway/         Fastify API gateway — the only public entry point [Phase 2]
-services/nutrition-api/   Fastify nutrition lookup, internal only          [Phase 2]
-infra/                    docker-compose + Terraform                  [Phase 2/3]
+packages/shared/          API contract types imported by the app and both services
+services/gateway/         Fastify API gateway — the only public entry point
+services/nutrition-api/   Fastify nutrition lookup, internal only
+infra/                    docker-compose.yml + .env.example  (Terraform: Phase 3)
 docs/DESIGN.md            visual source of truth: tokens, components, screens
 ```
 
@@ -90,6 +92,23 @@ React Native's **codegen** reads that spec at build time and generates the nativ
 
 **The tradeoff, stated plainly.** ML Kit's default labeler is a *generic* image classifier, not a food model. A photo of a margherita pizza comes back as `Food 96%`, `Pizza 95%`, `Cuisine 90%`, `Cake 78%`. Two consequences the app handles client-side: the top hit is often a category word that would be useless to look up ("food"), so a stop list demotes those and dims them in the list; and a wrong-but-specific guess like "Cake" stays visible, because the user is better placed to correct it than a heuristic is. Bundling a food-specific TFLite or CoreML model would remove the whole problem and is on the roadmap — it is the single biggest quality improvement available here.
 
+## The backend
+
+Two Fastify services in TypeScript, and the split between them is the point.
+
+**`nutrition-api`** is internal and never published. It holds a hand-written database of 139 foods with per-100 g macros, and resolves a label to an entry by trying an exact match on the name or any alias first, then fuzzy matching with fuse.js. Aliases are chosen for what a classifier actually emits, so `granny smith` resolves to Apple and `hot dog` to Hot dog. Below a score threshold it returns 404 rather than a confidently wrong number — a nutrition app that invents calories is worse than one that admits it does not know. The database is validated at boot, so a typo in the JSON stops the process with a precise message instead of surfacing as `NaN` kcal in the UI.
+
+**`gateway`** is the only public entry point, and it is a real gateway rather than a passthrough:
+
+- **Auth**: an `x-api-key` header checked against the environment. A wrong key and a missing key get byte-identical responses, so a prober learns nothing about which keys exist. The header is stripped before the request is forwarded — the internal service has no business seeing client credentials.
+- **Rate limiting**: 60 requests per minute, bucketed *per key* rather than per IP, because every phone behind one carrier NAT would otherwise share a bucket. Unkeyed requests fall back to IP so the limit cannot be dodged by omitting the header.
+- **Resilience**: an upstream timeout mapped to `502`, so a wedged service returns an error instead of holding the client socket open.
+- **Observability**: a request id generated per request, echoed in error bodies and forwarded upstream, so one user-reported failure can be followed across both services.
+
+The routing table is data, not code ([`services/gateway/src/config.ts`](services/gateway/src/config.ts)) — adding a second internal service is one entry plus an environment variable, no new proxy logic. `/health` on both services stays public and unlimited so container probes need no secret.
+
+Request and response types live in [`packages/shared`](packages/shared) and are imported by the app and both services, so there is exactly one definition of the contract and a change breaks the build on whichever side did not keep up.
+
 ## Running it locally
 
 **Prerequisites**
@@ -116,24 +135,85 @@ yarn workspace foodsnap-mobile android
 
 That builds the debug APK, installs it, and starts Metro. Snap a photo — or tap **Library** and pick one — and the Results screen shows real on-device labels. The nutrition card will say "backend offline": correct for Phase 1, since there is no backend yet.
 
+**Run the backend**
+
+```bash
+cd infra && cp .env.example .env && docker compose up --build
+```
+
+Only the gateway is published, on `:8080`; the nutrition service is reachable only from inside the compose network. Then point the app at it — copy `apps/mobile/.env.example` to `apps/mobile/.env`, set `API_KEY` to match one of the gateway's `API_KEYS`, and rebuild (react-native-config bakes these in at build time, so a reload is not enough).
+
+> On an Android emulator the gateway URL must be **`http://10.0.2.2:8080`** — `10.0.2.2` is how the emulator reaches your host, whereas `localhost` is the emulator itself. The iOS simulator can use `localhost`, and a physical device needs your machine's LAN address.
+
+Without Docker you can run the two services directly, which is what I did while building them:
+
+```bash
+yarn workspace @foodsnap/nutrition-api build && yarn workspace @foodsnap/nutrition-api start
+API_KEYS=dev-local-key-change-me NUTRITION_API_URL=http://127.0.0.1:3001 \
+  yarn workspace @foodsnap/gateway build && yarn workspace @foodsnap/gateway start
+```
+
 **Useful extras**
 
 ```bash
-yarn lint && yarn typecheck
+yarn lint && yarn typecheck && yarn test
 ```
 
 To eyeball the design tokens against [`docs/DESIGN.md`](docs/DESIGN.md), flip `SHOW_TOKEN_GALLERY` to `true` in `apps/mobile/App.tsx`.
 
-**The backend** (`docker compose up` in `infra/`) lands in Phase 2, together with the API key the app will need.
+## CI/CD
 
-## CI/CD and installing the APK
+Two workflows, both in [`.github/workflows`](.github/workflows):
 
-Both GitHub Actions workflows are Phase 2 work and not in the repo yet:
+- [`ci.yml`](.github/workflows/ci.yml) — on every push and PR: install with `--immutable` (so lockfile drift is a red build), then typecheck, lint, and Jest across all workspaces. There are no emulator or simulator jobs; the native module is mocked, which keeps the run fast and hermetic.
+- [`release-android.yml`](.github/workflows/release-android.yml) — on a `v*` tag: decode the signing keystore, build a signed APK, attach it to a GitHub Release.
 
-- `ci.yml` — typecheck, lint, and Jest on every push and PR. No emulator jobs; the native module is mocked in app tests.
-- `release-android.yml` — on a `v*` tag, decodes a signing keystore from repository secrets, runs `assembleRelease`, and attaches the signed `foodsnap-<version>.apk` to a GitHub Release.
+## Distributing outside the app stores
 
-The point of that second workflow is the out-of-store distribution story: a signed native Android app, built by CI, downloaded and sideloaded directly. Keystore generation, the four required secrets, and install instructions will be documented here when the workflow exists.
+This is the part of the project I actually wanted to demonstrate: a signed native Android app, built by CI, installed straight from a URL — no Play Store in the loop.
+
+### One-time setup
+
+**1. Generate a release keystore.** Keep it somewhere safe and outside the repo; if you lose it you cannot ship an upgrade to an already-installed app, only a fresh install under a different signature.
+
+```bash
+keytool -genkeypair -v -storetype PKCS12 -keystore foodsnap-release.keystore -alias foodsnap -keyalg RSA -keysize 2048 -validity 10000
+```
+
+**2. Base64-encode it** so it can live in a GitHub secret:
+
+```bash
+base64 -i foodsnap-release.keystore | pbcopy
+```
+
+**3. Add four repository secrets** under Settings → Secrets and variables → Actions:
+
+| Secret | Value |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | the base64 blob from step 2 |
+| `KEYSTORE_PASSWORD` | the store password you chose |
+| `KEY_ALIAS` | `foodsnap` (or your alias) |
+| `KEY_PASSWORD` | the key password you chose |
+
+Add `API_KEY` as a secret too — it is baked into the APK for the nutrition lookup — and `GATEWAY_URL` as a repository *variable* if the build should point somewhere other than the default.
+
+The keystore and passwords are never committed and never written into the repo tree: CI decodes the keystore into `RUNNER_TEMP` and passes the passwords through the environment, and `android/app/build.gradle` reads them from there.
+
+### Cutting a release
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The workflow derives `versionName` from the tag (`v0.1.0` → `0.1.0`) and `versionCode` from the run number, since Android needs that to increase monotonically for an install to count as an upgrade. It then verifies the APK is *not* debug-signed before publishing — `build.gradle` deliberately falls back to debug signing when no keystore is present, so that a local `assembleRelease` works for anyone cloning the repo, and that fallback must never reach a release.
+
+### Installing the APK
+
+1. Open the [Releases](https://github.com/askarpenko7/foodsnap/releases) page on your Android device and download `foodsnap-<version>.apk`.
+2. Tap the download. Android will refuse the first time and offer a settings toggle — this is the "install unknown apps" permission, granted per source app (your browser or file manager), not globally.
+3. Allow it, tap the APK again, and install.
+
+Play Protect may show a "scan this app?" prompt for an app it has not seen before; that is expected for anything distributed this way, and installing anyway is fine for a build you signed yourself. Upgrades install over the top as long as they are signed with the same keystore.
 
 ## Roadmap
 

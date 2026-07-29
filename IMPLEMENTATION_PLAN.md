@@ -39,11 +39,17 @@
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
 | Phase 1 — "it classifies on Android" | 15/15 | 0/1 | 2/2 | agent work done — H1 (real device + screenshot) open |
-| Phase 2 — "gateway, Docker, CI, released APK" | 0/14 | 0/3 | 0/4 | not started |
+| Phase 2 — "gateway, Docker, CI, released APK" | 12/14 | 0/3 | 1/4 | services + app + CI done · **P2.8/P2.9 blocked: no Docker on this machine** |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** nothing in progress · **Next up:** P2.1 (Phase 1 agent tasks + DoD are complete) · **Blocked on human:** H1 (real-device run + README screenshot — emulator screenshots are committed as interim), and H2 (create the GitHub repo) before CI can go green in P2.12
+**Now:** nothing in progress · **Next up:** P3.1 (Swift/Vision), or P2.8–P2.9 once Docker is available
+
+**Blocked on human:**
+- **Install Docker** (Desktop or `colima`) so P2.8/P2.9 can be built and run — the only Phase 2 work not verified.
+- **H1** — real-device run + README screenshot (emulator screenshots are committed as interim).
+- **H2** — create the public GitHub repo; CI cannot go green until there is a remote.
+- **H3/H4** — release keystore + the 4 secrets, then tag `v0.1.0`.
 
 ---
 
@@ -163,65 +169,67 @@
 
 ### A. Shared contracts + services
 
-- [ ] **P2.1 — `packages/shared`**
+- [x] **P2.1 — `packages/shared`**
   Request/response types for the nutrition API (success body, typed error body), imported by the app and both services — no duplicated contracts anywhere.
   **Verify:** typecheck green with app + both services importing from it.
 
-- [ ] **P2.2 — `services/nutrition-api` scaffold**
+- [x] **P2.2 — `services/nutrition-api` scaffold**
   Fastify + TypeScript + pino, built with the tool chosen in Verified Versions. `GET /health` for probes.
   **Verify:** service starts locally; `/health` → 200.
 
-- [ ] **P2.3 — `data/foods.json` (~120 foods)**
+- [x] **P2.3 — `data/foods.json` (~120 foods)**
   Generate ~120 common foods: `{ name, aliases[], per100g: { kcal, protein, carbs, fat } }` with plausible values. Bundled JSON is the MVP source — never an external API needing keys (brief rule 4).
   **Verify:** valid against the shared type; count ≥ 120; spot-check a few entries for sane numbers.
 
-- [ ] **P2.4 — Fuzzy matcher + `GET /nutrition/:food`** *(depends: P2.3)*
+- [x] **P2.4 — Fuzzy matcher + `GET /nutrition/:food`** *(depends: P2.3)*
   Matcher per Verified Versions choice (fuse.js or normalized Levenshtein) so ML labels like "hot dog" / "granny smith" resolve sensibly. Below threshold → `404` with the typed error body.
   **Verify:** "hot dog" and "granny smith" resolve; gibberish → 404 typed body.
 
-- [ ] **P2.5 — `services/gateway` scaffold + proxy**
+- [x] **P2.5 — `services/gateway` scaffold + proxy**
   Fastify gateway routing `/api/v1/nutrition/*` → nutrition-api (upstream URL from env). Structured so a second upstream is a config addition — say so in its README section.
   **Verify:** request through gateway → nutrition-api answers locally.
 
-- [ ] **P2.6 — Gateway auth + rate limiting**
+- [x] **P2.6 — Gateway auth + rate limiting**
   `x-api-key` header checked against env → `401` otherwise. `@fastify/rate-limit` at 60 req/min per key.
   **Verify:** curl matrix — no key → 401, wrong key → 401, good key → 200, 61st request in a minute → 429.
 
-- [ ] **P2.7 — Gateway hardening**
+- [x] **P2.7 — Gateway hardening**
   Request logging with request IDs, CORS, upstream timeout with `502` mapping, `GET /health`.
   **Verify:** with nutrition-api down, gateway returns 502 promptly (no hang).
 
 ### B. Docker
 
-- [ ] **P2.8 — Dockerfiles (both services)**
+- [!] **P2.8 — Dockerfiles (both services)**
   Multi-stage, `node:<LTS>-alpine` per Verified Versions, non-root user, prod deps only.
   **Verify:** `docker build` succeeds for both; containers run and pass `/health`.
+  **BLOCKED (2026-07-30):** Docker is not installed on this machine (no `docker`, Docker Desktop, colima, podman or nerdctl), so neither Dockerfile has ever been built. Written and reviewed, not verified — treat as untested code. To unblock: install Docker Desktop (or `brew install colima docker && colima start`), then from the repo root run `docker build -f services/nutrition-api/Dockerfile -t foodsnap-nutrition-api .` and the same for `services/gateway/Dockerfile`.
 
-- [ ] **P2.9 — `infra/docker-compose.yml`** *(depends: P2.8)*
+- [!] **P2.9 — `infra/docker-compose.yml`** *(depends: P2.8)*
   `gateway` on `:8080` (public); `nutrition-api` internal-only on the compose network; env wired between them. `docker compose up` + documented API key = everything needed locally.
   **Verify:** compose up → gateway serves nutrition through the documented key; nutrition-api port not reachable from host.
+  **BLOCKED (2026-07-30):** same missing-Docker blocker as P2.8. The file's *structure* was checked by parsing it (only the gateway publishes a port, nutrition-api has no `ports:` key, both have health checks, gateway `depends_on` waits for upstream health), but `docker compose up` has never run. To unblock: after P2.8, `cd infra && cp .env.example .env && docker compose up --build`, then confirm `curl -H "x-api-key: <key>" localhost:8080/api/v1/nutrition/pizza` returns 200 and that port 3001 is *not* reachable from the host.
 
 ### C. App wiring
 
-- [ ] **P2.10 — Typed API client + env** *(depends: P2.1, P2.9)*
+- [x] **P2.10 — Typed API client + env** *(depends: P2.1, P2.9)*
   Small typed `fetch` wrapper in `apps/mobile/src/api` importing `packages/shared` types. Base URL + API key via `react-native-config` `.env`; `.env.example` committed. ResultsScreen: selecting a label (top-1 by default, or a "Which one is it?" alternative) → `GET /api/v1/nutrition/:food` → the nutrition card fills (kcal, protein, carbs, fat per 100 g, styled per `docs/DESIGN.md`) with loading + error states; **classifications still render when the backend is unreachable** (offline notice card).
   **Verify:** emulator against the compose stack — nutrition card fills; stop compose → offline state, labels intact.
 
 ### D. Tests + CI/CD
 
-- [ ] **P2.11 — Jest tests**
+- [x] **P2.11 — Jest tests**
   Fuzzy matcher unit tests; gateway auth/rate-limit/proxy via `fastify.inject`; app logic with the native module mocked. No emulator/simulator tests.
   **Verify:** `yarn test` green in all workspaces.
 
-- [ ] **P2.12 — `ci.yml`** *(depends: P2.11)*
+- [x] **P2.12 — `ci.yml`** *(depends: P2.11)*
   On every push/PR: install with Yarn cache → typecheck all workspaces → lint → Jest.
   **Verify:** workflow YAML valid; green run on GitHub once H2 is done.
 
-- [ ] **P2.13 — `release-android.yml`**
+- [x] **P2.13 — `release-android.yml`**
   On tag `v*`: JDK 17 + Android SDK; decode keystore from secret `ANDROID_KEYSTORE_BASE64`; signing config reads `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` from env — keystore/passwords never committed; `./gradlew assembleRelease`; GitHub Release for the tag with `foodsnap-<version>.apk` attached.
   **Verify:** confirmed by H4 (tag push produces installable APK).
 
-- [ ] **P2.14 — README: out-of-store distribution**
+- [x] **P2.14 — README: out-of-store distribution**
   How to generate the keystore (`keytool -genkeypair …`), set the 4 repo secrets, and sideload the APK — explicitly framed as *distributing a signed native app outside official stores*.
   **Verify:** a reader could produce the keystore + secrets from the doc alone.
 
@@ -236,10 +244,14 @@
 
 ### Phase 2 — Definition of Done *(brief §10, verbatim)*
 
-- [ ] `docker compose up` + app → tapping a label shows nutrition.
-- [ ] Invalid API key → 401.
+- [~] `docker compose up` + app → tapping a label shows nutrition.
+      *The app-to-nutrition half is verified on the emulator, but against the two services run directly with `node dist/index.js`, not via compose — Docker is unavailable here (see P2.8). Selecting Pizza showed 266 kcal / 11 g protein; tapping the Cake alternative re-queried and showed 350 kcal / 50 g carbs. The `docker compose up` half remains unverified.*
+- [x] Invalid API key → 401.
+      *Verified by curl and by test: no key, wrong key and a valid key all behave correctly, and a wrong key is byte-identical to a missing one.*
 - [ ] Pushing tag `v0.1.0` → GitHub Release with installable APK.
+      *Blocked on H2–H4. The mechanism is verified locally: a signed release APK built with a throwaway keystore reports `CN=FoodSnap Release Test`, the debug-signing fallback is caught by the workflow's guard, and the tag-derived version lands in the APK (versionCode 42, versionName 0.1.0). Only the GitHub-side publish is untested.*
 - [ ] CI green.
+      *Blocked on H2 (no remote yet). The three steps the workflow runs — `yarn typecheck`, `yarn lint`, `yarn test` — all pass locally, and both workflow files parse as valid YAML.*
 
 ---
 
@@ -343,3 +355,10 @@
 | 2026-07-29 | Claude Code | P1.14 | Root lint + typecheck green. Added `globals` devDep and two scoped ESLint blocks: Node globals for `*.config.*`/`scripts/**` (plus `no-require-imports` off there), RN/Hermes globals (`globals.browser` + `__DEV__`) for app and package source — the latter pre-empts the same failure when `fetch` arrives in P2.10 | `eslint . --format json` → 19 files, 0 errors, 0 warnings; `yarn typecheck` → both workspaces clean |
 | 2026-07-29 | Claude Code | P1.15 | `README.md` in brief §9 order: one-liner, emulator screenshot + GIF placeholder, honest "Why this exists" (built 2026, demonstration project, Phase 1 done / 2–3 ahead), **working Mermaid** architecture diagram with dashed edges for unbuilt phases (brought forward from P3.5), monorepo tour, a teaching section on the native module (spec → codegen → compile-time contract, ML Kit threading, the generic-labeler tradeoff), local run steps, Phase 2 CI/CD + APK placeholder, roadmap. Documents the machine-level `org.gradle.java.home` prerequisite the previous session hit (system JDK 11 is too old for AGP; Android Studio JBR is 21) | Facts verified, not assumed: JBR reports 21.0.10, system java 11.0.28, workspace really is `foodsnap-mobile`. Documented command run verbatim — `yarn workspace foodsnap-mobile android` → BUILD SUCCESSFUL, installed, app launched on emulator |
 | 2026-07-29 | Claude Code | Phase 1 DoD | Both DoD items ticked against a live emulator run of the documented command. Caveat recorded on the checklist: not run from a literally fresh clone, and the JDK prerequisite is machine-level. H1 (real-device run + final README screenshot) is still Alexander's | See P1.13/P1.15 rows |
+| 2026-07-30 | Claude Code | P2.1–P2.4 | `packages/shared` as TS source (no build: Metro compiles TS, tsup bundles workspace sources) holding the contract plus `nutritionPath()` and the api-key header name, so app and gateway cannot disagree on the path. `nutrition-api`: Fastify + pino + tsup, `buildApp()` that does not listen (so tests use `inject`), 139-food database validated at boot, exact-then-fuzzy matcher (fuse.js) that 404s below threshold rather than answering wrongly | Service run for real: `/health` 200; `hot dog` → Hot dog and `granny smith` → Apple (the brief's two cases); `chiken breast` → Chicken breast 0.837, `spagetti` → Pasta 0.875 via alias; `asdfghjkl` → typed 404. Data checked by script: 139 entries, 468 searchable keys, 0 duplicates, 0 out-of-range macros |
+| 2026-07-30 | Claude Code | P2.5–P2.7 | Gateway: `@fastify/http-proxy` routing from a data-driven table (second upstream = one entry + an env var), api-key auth where wrong and missing keys are indistinguishable, api-key stripped before forwarding, per-key rate limiting, CORS, request ids forwarded upstream, upstream timeout → 502. **Two bugs found while verifying:** (1) rate-limit returned **500 instead of 429** — the plugin *throws* whatever `errorResponseBuilder` returns, so it must be an Error carrying `statusCode`; (2) the 429 body then came back in Fastify's default shape, not the shared contract's, because `await app.register()` loads a plugin immediately and its child context captures the error handler as it stands then — handlers must be installed *before* the awaited registers | curl matrix: no key/wrong key → 401, valid → 200 proxied, upstream 404 passthrough, 429 after the limit with a second key unaffected, `/health` unlimited. 502 verified twice: connection-refused in 3 ms and a deliberately silent upstream at the 2 s timeout — no hang either way |
+| 2026-07-30 | Claude Code | P2.8, P2.9 | **BLOCKED — no Docker on this machine.** Multi-stage Dockerfiles written for both services (`node:24-alpine`, `yarn workspaces focus` so React Native never enters a backend image, non-root `node` user, prod-only runtime deps, exec-form CMD so SIGTERM reaches the shutdown handler) plus `infra/docker-compose.yml` and `.env.example`. Never built or run — see the inline BLOCKED notes on both tasks for the exact unblock commands | Structure only: compose parsed and asserted — gateway is the sole published port, nutrition-api has no `ports:` key, both have `node -e` health checks, gateway `depends_on` waits for upstream health. `docker build` and `docker compose up`: **not run** |
+| 2026-07-30 | Claude Code | P2.10 | Typed `fetch` client deriving path and header from `@foodsnap/shared`, classifying failures into unreachable / structured refusal / malformed, with NOT_FOUND modelled as an outcome rather than an error. `useNutrition` hook; `NutritionCard` + `Notice` components per DESIGN.md (CaptureScreen switched to the shared `Notice`); label ranking extracted to `src/lib/labels.ts`. Macro bars are filled by each macro's share of the item's own macro grams, since daily targets do not exist until P4.2. `react-native-config` wired: **`dotenv.gradle` lives at `react-native-config/android/`, not the package root**, and resolves the env file as `$rootDir/../.env` | Emulator against the live stack: Pizza → 266 kcal / 11 g protein; tapping Cake re-queried → 350 kcal / 50 g carbs; with the gateway stopped the card shows "Backend offline" and all five labels stay on screen. Gateway log confirms `/api/v1/nutrition/Pizza` and `/Cake` arrived |
+| 2026-07-30 | Claude Code | P2.11 | 71 tests. nutrition-api (35): matcher normalisation, the brief's cases, misspellings, threshold behaviour, and every rejection `parseFoods` makes. gateway (12) through `inject()` against a stub upstream: full auth matrix, api-key stripping, request-id forwarding, 404 passthrough, 502, per-key buckets, health exempt — the 429 assertion is a regression guard for the bug above. mobile (24): label ranking pinned against the real ML Kit output for a pizza, plus client request-building and all four failure classifications with `fetch` mocked. Jest setup needed `transformIgnorePatterns` for react-navigation's ESM; native modules mocked per the brief's no-emulator rule | `yarn test` at root: 35 + 12 + 24 all passing across three workspaces. Also fixed the previously-broken `App.test.tsx` |
+| 2026-07-30 | Claude Code | P2.12, P2.13 | `ci.yml` (typecheck/lint/test, Yarn cache, `--immutable`, no emulator jobs) and `release-android.yml` (tag → decode keystore into `RUNNER_TEMP` → signed `assembleRelease` → GitHub Release). `build.gradle` release signing now comes from env only, falling back to debug signing locally so a plain `assembleRelease` still works — with a workflow guard so that fallback can never publish. **Three bugs found by running it:** (1) `assembleRelease` could not locate hermesc — RN 0.86 ships it in `hermes-compiler`, resolved under `<root>/node_modules` where root is `apps/mobile` while node_modules is hoisted, and *only release builds compile bytecode* so debug had masked it for the whole project; (2) my own signing assertion globbed `build-tools/*/apksigner`, which expands to every installed version and verified nothing while exiting 0; (3) the same step piped through `tee`, masking the exit code | Release APK built both ways with a throwaway keystore (since deleted): release-signed → `CN=FoodSnap Release Test`, guard passes; debug fallback → `CN=Android Debug`, guard fires. Tag-derived version lands in the APK: `versionCode='42' versionName='0.1.0'`. Both workflows parse as valid YAML. GitHub-side publish untested (needs H2–H4) |
+| 2026-07-30 | Claude Code | P2.14 | README rewritten for the Phase 2 reality: new "The backend" section explaining the gateway/service split and why each control exists, out-of-store distribution documented end to end (keytool, base64, the four secrets, cutting a tag, sideloading including the per-source "unknown apps" permission and the Play Protect prompt), architecture diagram de-dashed, local run steps for both compose and bare-node, and the `10.0.2.2` emulator gotcha called out | Section order still matches brief §9; no stale "Phase 2 is coming" claims remain; hero screenshot replaced with the one showing live nutrition |

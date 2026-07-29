@@ -6,9 +6,27 @@ Hard-won facts about this repo and this machine. They are here because each one 
 
 ## Where the project stands
 
-Phase 1 is complete and verified on an Android emulator: the app classifies real photos on-device. All 15 Phase 1 agent tasks and both DoD items are ticked. **Next task is P2.1** (`packages/shared`).
+Phase 1 is complete and verified on an emulator. Phase 2 is done except Docker: both services, the app wiring, 71 tests, and both CI workflows are built and verified. **Next task is P3.1** (Swift/Vision), or P2.8–P2.9 if Docker becomes available.
 
-Two human-only items are open and block specific things: **H1** (real-device run + README screenshot — emulator shots are committed as interim) and **H2** (create the public GitHub repo), which must happen before CI can actually go green in P2.12.
+**Docker is not installed on this machine** — no `docker`, Docker Desktop, colima, podman or nerdctl. The Dockerfiles and `infra/docker-compose.yml` are therefore *written but never built*. Treat them as untested. Everything else in Phase 2 was verified by running it.
+
+Human-only items still open: **H1** (real-device run + screenshot), **H2** (create the public GitHub repo — CI cannot go green without a remote), **H3/H4** (keystore + 4 secrets, then tag `v0.1.0`).
+
+## Running the backend without Docker
+
+This is how Phase 2 was actually verified, and it is the fastest loop:
+
+```bash
+yarn workspace @foodsnap/nutrition-api build && \
+  (cd services/nutrition-api && PORT=3001 node dist/index.js &)
+yarn workspace @foodsnap/gateway build && \
+  (cd services/gateway && API_KEYS=dev-local-key-change-me \
+     NUTRITION_API_URL=http://127.0.0.1:3001 PORT=8080 node dist/index.js &)
+```
+
+The gateway **refuses to start without `API_KEYS`** — that is deliberate, not a bug. `RATE_LIMIT_MAX=3` makes the rate limit testable in seconds.
+
+**Killing these needs care.** `lsof -ti tcp:3001 | xargs kill` also kills the *gateway*, because it holds a keep-alive connection to that port. Always add `-sTCP:LISTEN` to target only the listener.
 
 ## This machine (macOS)
 
@@ -44,6 +62,18 @@ adb exec-out screencap -p > shot.png
 ```
 
 Two food photos (pizza, salad) are already in the emulator's gallery. The pizza is the better test — it is what the design concept uses.
+
+## Library traps already paid for
+
+Each of these cost a debugging cycle. None is discoverable by reading our code.
+
+- **Fastify plugins that reject by throwing.** `@fastify/rate-limit` *throws* whatever `errorResponseBuilder` returns, so it must be an `Error` carrying `statusCode`. Return a plain body and you get a 429-shaped payload sent as a **500**.
+- **`await app.register()` freezes the error handler.** Awaiting a register loads that plugin immediately, and the child context it creates captures `setErrorHandler` as it stands at that moment. Install error and not-found handlers **before** any awaited register, or proxied routes silently answer in Fastify's default error shape instead of the shared contract's.
+- **`requestIdLogLabel` is deprecated** in Fastify 5 and renaming that log field in 6 needs a custom `logController` class. Both services just use the default `reqId`.
+- **hermesc under workspace hoisting.** RN 0.86 ships hermesc in its own `hermes-compiler` package, which the Gradle plugin resolves under `<react.root>/node_modules` — that is `apps/mobile`, while node_modules is hoisted. `app/build.gradle` sets `hermesCommand` explicitly, keeping `%OS-BIN%` so macOS and CI's linux64 both work. **Only release builds compile bytecode**, so `assembleDebug` passes while `assembleRelease` fails — always run a release build before trusting the release workflow.
+- **`react-native-config`**: `dotenv.gradle` is at `react-native-config/android/dotenv.gradle`, not the package root, and it resolves the env file as `$rootDir/../.env` (so `apps/mobile/.env`). Values are baked in at **build** time — changing `.env` needs a rebuild, not a reload.
+- **`apksigner` globs.** `"$ANDROID_HOME"/build-tools/*/apksigner` expands to *every* installed version, passing the extras as arguments; it then verifies nothing and still exits 0. Pick one: `find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1`.
+- **Jest + React Native ESM.** The RN preset does not transform `node_modules`, but react-navigation ships ESM, so `transformIgnorePatterns` must allow-list it (see `apps/mobile/jest.config.js`). Service suites are ESM too and need `NODE_OPTIONS=--experimental-vm-modules` plus a `moduleNameMapper` stripping `.js` from relative imports.
 
 ## Things about the product you cannot infer from the code
 
