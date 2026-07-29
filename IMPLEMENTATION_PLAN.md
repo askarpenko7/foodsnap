@@ -38,12 +38,12 @@
 
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
-| Phase 1 — "it classifies on Android" | 3/15 | 0/1 | 0/2 | in progress |
+| Phase 1 — "it classifies on Android" | 4/15 | 0/1 | 0/2 | in progress |
 | Phase 2 — "gateway, Docker, CI, released APK" | 0/14 | 0/3 | 0/4 | not started |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** P1.4 · **Next up:** P1.4 · **Blocked on human:** nothing
+**Now:** P1.5 · **Next up:** P1.5 · **Blocked on human:** nothing
 
 ---
 
@@ -53,24 +53,24 @@
 
 | Component | Version pinned | Verified on | Source / notes |
 |---|---|---|---|
-| React Native | — | — | New Architecture + Hermes must be ON |
-| Node.js LTS (services + Docker base image) | — | — | decide `node:XX-alpine` here |
-| Yarn (Berry) | — | — | `nodeLinker: node-modules` mandatory |
-| create-react-native-library | — | — | Kotlin+Swift TurboModule template |
-| ML Kit image labeling (`com.google.mlkit:image-labeling`) | — | — | on-device default model, no key |
-| Fastify | — | — | |
-| `@fastify/rate-limit` | — | — | |
-| Gateway proxy approach | — | — | `@fastify/http-proxy` vs manual — record choice |
-| `@react-navigation/native` + `native-stack` | — | — | |
-| react-native-image-picker | — | — | |
-| react-native-config | — | — | |
-| react-native-mmkv | — | — | Phase 3 |
-| Glass/blur approach (`@react-native-community/blur` vs translucent fallback) | — | — | see `docs/DESIGN.md` §4 — record decision |
-| IBM Plex Mono font files (OFL) | — | — | bundled in app; the design's data/numbers voice |
-| culori (dev-only) | — | — | OKLCH → hex token generation script (P1.6) |
-| fuse.js (or Levenshtein impl) | — | — | record matcher choice |
-| Jest + RN preset / ts-jest | — | — | |
-| tsup vs tsc (service builds) | — | — | record choice |
+| React Native | 0.86.2 (react 19.2.3) | 2026-07-29 | npm `latest`; New Architecture + Hermes are default ON in 0.86 |
+| Node.js LTS (services + Docker base image) | 24.x (Krypton) → `node:24-alpine` | 2026-07-29 | nodejs.org/dist/index.json — 24 is active LTS; brief's `node:20-alpine` superseded per version policy |
+| Yarn (Berry) | 4.9.2 | 2026-07-29 | installed via Corepack (`packageManager` field); `nodeLinker: node-modules` set |
+| create-react-native-library | 0.63.0 | 2026-07-29 | npm `latest`; Kotlin+Swift TurboModule template |
+| ML Kit image labeling (`com.google.mlkit:image-labeling`) | 17.0.9 | 2026-07-29 | dl.google.com maven-metadata.xml — latest release; on-device default model, no key |
+| Fastify | 5.10.0 | 2026-07-29 | npm `latest` |
+| `@fastify/rate-limit` | 11.2.0 | 2026-07-29 | npm `latest` (Fastify v5 line) |
+| Gateway proxy approach | `@fastify/http-proxy` 11.6.0 | 2026-07-29 | chosen over manual forwarding: keeps upstream timeout/502 mapping + undici pooling; second upstream = another register block |
+| `@react-navigation/native` + `native-stack` | 7.3.14 + 7.18.6 | 2026-07-29 | npm `latest`; with react-native-screens 4.26.2 + safe-area-context 5.8.0 |
+| react-native-image-picker | 8.2.1 | 2026-07-29 | npm `latest` |
+| react-native-config | 1.6.1 | 2026-07-29 | npm `latest` (Phase 2 app wiring) |
+| react-native-mmkv | 4.3.2 | 2026-07-29 | npm `latest`; Phase 3 |
+| Glass/blur approach (`@react-native-community/blur` vs translucent fallback) | **Graceful degrade** (solid fills ≈ `rgba(30,34,44,.92)` + same borders/shadows); blur lib 4.4.1 noted for P4.1 revisit | 2026-07-29 | DESIGN.md §4 explicitly offers the degrade path; avoids a native dep for MVP. Decision: degrade. |
+| IBM Plex Mono font files (OFL) | google/fonts repo `ofl/ibmplexmono` @ main (OFL 1.1) | 2026-07-29 | github.com/google/fonts raw TTFs (400/500/600) + OFL.txt bundled; GitHub API was rate-limited, files fetched directly |
+| culori (dev-only) | 4.0.2 | 2026-07-29 | npm `latest`; OKLCH → hex token generation script (P1.6) |
+| fuse.js (or Levenshtein impl) | fuse.js 7.5.0 | 2026-07-29 | chosen over hand-rolled Levenshtein: alias scoring + threshold tuning for free |
+| Jest + RN preset / ts-jest | Jest 29.7.x + `@react-native/jest-preset` 0.86.2; ts-jest 29.4.12 (services) | 2026-07-29 | RN community template 0.86.2 pins `jest ^29.6.3`; preset 0.86.2 deps are jest-29 libs — stay on 29 everywhere for consistency |
+| tsup vs tsc (service builds) | tsup 8.5.1 | 2026-07-29 | chosen: single-file ESM builds + watch mode, no tsconfig emit gymnastics |
 
 ---
 
@@ -92,13 +92,13 @@
   `tsconfig.base.json` with `strict: true`, extended by every workspace. Shared ESLint + Prettier at root. Root scripts: `lint`, `typecheck` (run across all workspaces).
   **Verify:** `yarn lint` and `yarn typecheck` run green (trivially, pre-code).
 
-- [~] **P1.4 — Version research → fill Verified Versions table**
+- [x] **P1.4 — Version research → fill Verified Versions table**
   Check current stable versions of every row above (npm/official docs), record version + date + source. Decide Node base image, proxy approach, matcher lib, build tool.
   **Verify:** no `—` left in mobile/tooling rows; each row has a source.
 
 ### B. React Native app scaffold + design system
 
-- [ ] **P1.5 — Scaffold `apps/mobile`** *(depends: P1.2–P1.4)*
+- [~] **P1.5 — Scaffold `apps/mobile`** *(depends: P1.2–P1.4)*
   Bare React Native (not Expo), TypeScript, New Architecture ON, Hermes ON, wired into the workspace.
   **Verify:** `cd apps/mobile/android && ./gradlew assembleDebug` succeeds.
 
@@ -328,3 +328,4 @@
 | 2026-07-29 | OpenCode (kimi-k3) | P1.1 | `.gitignore` (Node, Metro, Android, iOS, `.env*` except `.env.example`) + MIT `LICENSE` (Alexander Karpenko) | `LICENSE` at root; `git status` shows only intended files |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.2 | Yarn Berry 4.9.2 via Corepack (`packageManager` field), `.yarnrc.yml` → `nodeLinker: node-modules`, root `package.json` (private, workspaces `apps/* packages/* services/*`) | `yarn install` succeeded; `node_modules/` is a real directory |
 | 2026-07-29 | OpenCode (kimi-k3) | P1.3 | `tsconfig.base.json` (`strict: true` + extra strictness flags), ESLint 10 flat config + typescript-eslint + Prettier at root; root `lint`/`typecheck` scripts. Note: TS `latest` is now 7.x (native preview) — breaks Yarn's builtin patch + typescript-eslint peers, pinned stable `typescript@5.9.3` instead | `yarn lint` + `yarn typecheck` exit 0 (trivially, pre-code) |
+| 2026-07-29 | OpenCode (kimi-k3) | P1.4 | Verified Versions table filled from npm registry / dl.google.com maven metadata / nodejs.org dist index. Decisions: Node 24 LTS (`node:24-alpine`), `@fastify/http-proxy`, fuse.js, tsup, Jest 29 line (matches RN 0.86 preset), glass = graceful degrade for MVP | No `—` left in mobile/tooling rows; every row has a source |
