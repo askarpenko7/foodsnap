@@ -43,10 +43,13 @@ export function RootNavigator() {
           component={CaptureScreen}
           options={{ headerShown: false }}
         />
+        {/* Both screens are headerless: the design puts the photo full-bleed
+            under the status bar, with a glass "Retake" chip standing in for a
+            back button. */}
         <Stack.Screen
           name="Results"
           component={ResultsScreen}
-          options={{ title: 'Result' }}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>
