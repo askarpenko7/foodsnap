@@ -39,17 +39,15 @@
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
 | Phase 1 — "it classifies on Android" | 15/15 | 0/1 | 2/2 | agent work done — H1 (real device + screenshot) open |
-| Phase 2 — "gateway, Docker, CI, released APK" | 14/14 | 1/3 | 3/4 | pushed, CI green · last DoD item needs the keystore + tag (H3/H4) |
+| Phase 2 — "gateway, Docker, CI, released APK" | 14/14 | 3/3 | 4/4 | **complete** — released as v0.1.0 |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** nothing in progress · **Next up:** P3.1 (Swift/Vision) — every Phase 2 agent task is done and verified
+**Now:** P3.1 (Swift/Vision) in progress · **Phases 1 and 2 are complete**, DoD included.
 
-**Repo:** https://github.com/askarpenko7/foodsnap · `main` pushed, CI green.
+**Repo:** https://github.com/askarpenko7/foodsnap · CI green · [v0.1.0 released](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) with a signed APK.
 
-**Blocked on human:**
-- **H3/H4** — generate the release keystore and add the 4 repository secrets (credentials, so Alexander only), then tag `v0.1.0`. This is the last Phase 2 DoD item.
-- **H1** — real-device run + README screenshot (emulator screenshots are committed as interim).
+**Blocked on human:** only **H1** — run on a real device and swap the emulator screenshots in the README for real ones. Nothing else is waiting on Alexander.
 
 ---
 
@@ -236,10 +234,10 @@
 - [x] **H2 — *(human)* Create GitHub repo**
   Public repo `askarpenko7/foodsnap`, MIT; push this repo there.
 
-- [ ] **H3 — *(human)* Keystore + secrets**
+- [x] **H3 — *(human)* Keystore + secrets**
   Generate the release keystore locally per README; add the 4 GitHub secrets.
 
-- [ ] **H4 — *(human)* Tag `v0.1.0`**
+- [x] **H4 — *(human)* Tag `v0.1.0`**
   Push the tag after Phase 2; confirm the GitHub Release appears and the APK installs on a device.
 
 ### Phase 2 — Definition of Done *(brief §10, verbatim)*
@@ -248,8 +246,8 @@
       *Verified against the real compose stack: emulator → gateway container → nutrition-api container → Pizza, 266 kcal / 11 g protein / 33 g carbs. Both containers logged the request and one gateway request id (`gw-472efdf6…`) appears in the internal service's log too, so the trace propagates across the hop.*
 - [x] Invalid API key → 401.
       *Verified by curl and by test: no key, wrong key and a valid key all behave correctly, and a wrong key is byte-identical to a missing one.*
-- [ ] Pushing tag `v0.1.0` → GitHub Release with installable APK.
-      *Blocked on H2–H4. The mechanism is verified locally: a signed release APK built with a throwaway keystore reports `CN=FoodSnap Release Test`, the debug-signing fallback is caught by the workflow's guard, and the tag-derived version lands in the APK (versionCode 42, versionName 0.1.0). Only the GitHub-side publish is untested.*
+- [x] Pushing tag `v0.1.0` → GitHub Release with installable APK.
+      *[Release v0.1.0](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) carries `foodsnap-0.1.0.apk` (104.3 MB). Downloaded and checked independently of CI: `apksigner verify` passes and the signer is `CN=Alexander Karpenko, … Barcelona` — the real release key, not the debug fallback. `versionName='0.1.0'` from the tag. Installed on the emulator and launched: no Metro, no crash, runs from the bundled JS. Installing over the debug build is correctly refused with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` (different signing key), which is exactly the upgrade behaviour the signing guard protects.*
 - [x] CI green.
       *[Run 30498818827](https://github.com/askarpenko7/foodsnap/actions/runs/30498818827) — every step passing on `a09100b`. The first run failed and the fix is recorded in the Work Log.*
 
@@ -365,3 +363,4 @@
 | 2026-07-30 | Claude Code | P2.8, P2.9 | **Unblocked** — Alexander installed Docker (29.6.2, Compose v5.3.1). Both images build and the compose stack runs. **Bug found on the first build: images were 552/560 MB** because the runtime stage was `FROM deps`; Docker layers are additive, so every dev dependency stayed in the image regardless of what `yarn workspaces focus --production` pruned afterwards. Runtime stages now start from a clean `node:24-alpine` and reinstall prod-only deps | 253 MB / 257 MB after the fix (was 552/560). Containers run as `uid=1000(node)` with node as PID 1; `docker stop` returns in 0s and logs "shutting down", so exec-form CMD really does deliver SIGTERM. Compose: nutrition-api goes `Waiting → Healthy` before the gateway starts; gateway published `0.0.0.0:8080->8080`, nutrition-api bare `3001/tcp` and refused from the host; valid key → 200, wrong key → 401 |
 | 2026-07-30 | Claude Code | Phase 2 DoD | Two of four items now pass. The compose DoD item was re-verified properly: emulator → gateway container → nutrition-api container → Pizza 266 kcal / 11 g protein, with one gateway request id (`gw-472efdf6…`) traced into the internal service's own logs. The remaining two items (GitHub Release from a tag, CI green) are GitHub-side and blocked on H2–H4 | See the P2.8/P2.9 row; screenshot in `docs/screenshots/` |
 | 2026-07-30 | Claude Code | H2 (assisted), CI green | Pushed to https://github.com/askarpenko7/foodsnap. Before pushing, rewrote all 18 commits from the placeholder `noreply@mail.com` to the GitHub noreply address `9066318+askarpenko7@users.noreply.github.com`, so they link to Alexander's profile and contribution graph — worth catching pre-push, since afterwards it needs a force-push. Also found that the machine's SSH key authenticates as a *different* account (`alexander-karpenko-at-fooda`), so HTTPS was used, where Git Credential Manager already held the `askarpenko7` credential. **The first CI run failed**: `actions/setup-node`'s `cache: yarn` shells out to `yarn` to find the cache folder, but Corepack was enabled in the *next* step, so yarn did not exist yet. Nothing local could have caught it — yarn is on PATH here. Fixed by installing Node, enabling Corepack, then re-running setup-node for the cache; `release-android.yml` had the identical ordering and was fixed too | Tree hash identical before/after the rewrite (metadata only, 18 commits both sides). [Run 30498818827](https://github.com/askarpenko7/foodsnap/actions/runs/30498818827): checkout, setup-node, Corepack, setup-node, install, typecheck, lint, test — all green. GitHub confirms the latest commit is linked to user `askarpenko7` |
+| 2026-07-30 | Claude Code | H3, H4 (verification), Phase 2 DoD | Alexander generated the release keystore and added the five repository secrets, then tagged `v0.1.0`. The release workflow passed every step first time — including `Verify the APK is signed with the release key`. Verified the published artifact independently rather than trusting the run: downloaded `foodsnap-0.1.0.apk` from the Release, `apksigner verify` passes, signer is `CN=Alexander Karpenko, OU=eve, O=eve, L=Barcelona, ST=Barcelona, C=ES` (the real key, not the debug fallback), `versionName='0.1.0'` derived from the tag. Installed it on the emulator and launched it with Metro stopped: runs from the bundled JS, no crash. Installing it *over* the debug build is refused with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` — correct, and the exact failure mode the signing guard exists to keep out of a release. **Phase 2 is complete, 4/4 DoD** | [Release v0.1.0](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) · [run 30499856454](https://github.com/askarpenko7/foodsnap/actions/runs/30499856454) · screenshot `docs/screenshots/` |
