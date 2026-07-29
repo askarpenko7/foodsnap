@@ -39,14 +39,13 @@
 | Phase | Agent tasks | Human tasks | DoD | Status |
 |---|---|---|---|---|
 | Phase 1 — "it classifies on Android" | 15/15 | 0/1 | 2/2 | agent work done — H1 (real device + screenshot) open |
-| Phase 2 — "gateway, Docker, CI, released APK" | 12/14 | 0/3 | 1/4 | services + app + CI done · **P2.8/P2.9 blocked: no Docker on this machine** |
+| Phase 2 — "gateway, Docker, CI, released APK" | 14/14 | 0/3 | 2/4 | all agent tasks done · remaining DoD needs the GitHub repo (H2–H4) |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** nothing in progress · **Next up:** P3.1 (Swift/Vision), or P2.8–P2.9 once Docker is available
+**Now:** nothing in progress · **Next up:** P3.1 (Swift/Vision) — every Phase 2 agent task is done and verified
 
-**Blocked on human:**
-- **Install Docker** (Desktop or `colima`) so P2.8/P2.9 can be built and run — the only Phase 2 work not verified.
+**Blocked on human:** the last two Phase 2 DoD items are GitHub-side and cannot be done from here.
 - **H1** — real-device run + README screenshot (emulator screenshots are committed as interim).
 - **H2** — create the public GitHub repo; CI cannot go green until there is a remote.
 - **H3/H4** — release keystore + the 4 secrets, then tag `v0.1.0`.
@@ -199,15 +198,15 @@
 
 ### B. Docker
 
-- [!] **P2.8 — Dockerfiles (both services)**
+- [x] **P2.8 — Dockerfiles (both services)**
   Multi-stage, `node:<LTS>-alpine` per Verified Versions, non-root user, prod deps only.
   **Verify:** `docker build` succeeds for both; containers run and pass `/health`.
-  **BLOCKED (2026-07-30):** Docker is not installed on this machine (no `docker`, Docker Desktop, colima, podman or nerdctl), so neither Dockerfile has ever been built. Written and reviewed, not verified — treat as untested code. To unblock: install Docker Desktop (or `brew install colima docker && colima start`), then from the repo root run `docker build -f services/nutrition-api/Dockerfile -t foodsnap-nutrition-api .` and the same for `services/gateway/Dockerfile`.
+  *Unblocked 2026-07-30 once Docker was installed. Both images build and run; containers are `uid=1000(node)`, node is PID 1, and `docker stop` returns in 0s with a "shutting down" log line — the exec-form CMD does deliver SIGTERM to the handler. **First build was 552/560 MB**: the runtime stage inherited `FROM deps`, and since layers are additive, `--production` pruned nothing that was already baked in. Runtime now starts from a clean `node:24-alpine` and re-installs prod-only deps → 253/257 MB.*
 
-- [!] **P2.9 — `infra/docker-compose.yml`** *(depends: P2.8)*
+- [x] **P2.9 — `infra/docker-compose.yml`** *(depends: P2.8)*
   `gateway` on `:8080` (public); `nutrition-api` internal-only on the compose network; env wired between them. `docker compose up` + documented API key = everything needed locally.
   **Verify:** compose up → gateway serves nutrition through the documented key; nutrition-api port not reachable from host.
-  **BLOCKED (2026-07-30):** same missing-Docker blocker as P2.8. The file's *structure* was checked by parsing it (only the gateway publishes a port, nutrition-api has no `ports:` key, both have health checks, gateway `depends_on` waits for upstream health), but `docker compose up` has never run. To unblock: after P2.8, `cd infra && cp .env.example .env && docker compose up --build`, then confirm `curl -H "x-api-key: <key>" localhost:8080/api/v1/nutrition/pizza` returns 200 and that port 3001 is *not* reachable from the host.
+  *Verified 2026-07-30: `docker compose up --build` brings both up healthy, and the ordering gate works — nutrition-api goes `Waiting → Healthy` before the gateway starts. `docker compose ps` shows the gateway published as `0.0.0.0:8080->8080` while nutrition-api is bare `3001/tcp`, and curling `localhost:3001` from the host is refused. Through the gateway: valid key → 200 with macros, wrong key → 401.*
 
 ### C. App wiring
 
@@ -244,8 +243,8 @@
 
 ### Phase 2 — Definition of Done *(brief §10, verbatim)*
 
-- [~] `docker compose up` + app → tapping a label shows nutrition.
-      *The app-to-nutrition half is verified on the emulator, but against the two services run directly with `node dist/index.js`, not via compose — Docker is unavailable here (see P2.8). Selecting Pizza showed 266 kcal / 11 g protein; tapping the Cake alternative re-queried and showed 350 kcal / 50 g carbs. The `docker compose up` half remains unverified.*
+- [x] `docker compose up` + app → tapping a label shows nutrition.
+      *Verified against the real compose stack: emulator → gateway container → nutrition-api container → Pizza, 266 kcal / 11 g protein / 33 g carbs. Both containers logged the request and one gateway request id (`gw-472efdf6…`) appears in the internal service's log too, so the trace propagates across the hop.*
 - [x] Invalid API key → 401.
       *Verified by curl and by test: no key, wrong key and a valid key all behave correctly, and a wrong key is byte-identical to a missing one.*
 - [ ] Pushing tag `v0.1.0` → GitHub Release with installable APK.
@@ -362,3 +361,5 @@
 | 2026-07-30 | Claude Code | P2.11 | 71 tests. nutrition-api (35): matcher normalisation, the brief's cases, misspellings, threshold behaviour, and every rejection `parseFoods` makes. gateway (12) through `inject()` against a stub upstream: full auth matrix, api-key stripping, request-id forwarding, 404 passthrough, 502, per-key buckets, health exempt — the 429 assertion is a regression guard for the bug above. mobile (24): label ranking pinned against the real ML Kit output for a pizza, plus client request-building and all four failure classifications with `fetch` mocked. Jest setup needed `transformIgnorePatterns` for react-navigation's ESM; native modules mocked per the brief's no-emulator rule | `yarn test` at root: 35 + 12 + 24 all passing across three workspaces. Also fixed the previously-broken `App.test.tsx` |
 | 2026-07-30 | Claude Code | P2.12, P2.13 | `ci.yml` (typecheck/lint/test, Yarn cache, `--immutable`, no emulator jobs) and `release-android.yml` (tag → decode keystore into `RUNNER_TEMP` → signed `assembleRelease` → GitHub Release). `build.gradle` release signing now comes from env only, falling back to debug signing locally so a plain `assembleRelease` still works — with a workflow guard so that fallback can never publish. **Three bugs found by running it:** (1) `assembleRelease` could not locate hermesc — RN 0.86 ships it in `hermes-compiler`, resolved under `<root>/node_modules` where root is `apps/mobile` while node_modules is hoisted, and *only release builds compile bytecode* so debug had masked it for the whole project; (2) my own signing assertion globbed `build-tools/*/apksigner`, which expands to every installed version and verified nothing while exiting 0; (3) the same step piped through `tee`, masking the exit code | Release APK built both ways with a throwaway keystore (since deleted): release-signed → `CN=FoodSnap Release Test`, guard passes; debug fallback → `CN=Android Debug`, guard fires. Tag-derived version lands in the APK: `versionCode='42' versionName='0.1.0'`. Both workflows parse as valid YAML. GitHub-side publish untested (needs H2–H4) |
 | 2026-07-30 | Claude Code | P2.14 | README rewritten for the Phase 2 reality: new "The backend" section explaining the gateway/service split and why each control exists, out-of-store distribution documented end to end (keytool, base64, the four secrets, cutting a tag, sideloading including the per-source "unknown apps" permission and the Play Protect prompt), architecture diagram de-dashed, local run steps for both compose and bare-node, and the `10.0.2.2` emulator gotcha called out | Section order still matches brief §9; no stale "Phase 2 is coming" claims remain; hero screenshot replaced with the one showing live nutrition |
+| 2026-07-30 | Claude Code | P2.8, P2.9 | **Unblocked** — Alexander installed Docker (29.6.2, Compose v5.3.1). Both images build and the compose stack runs. **Bug found on the first build: images were 552/560 MB** because the runtime stage was `FROM deps`; Docker layers are additive, so every dev dependency stayed in the image regardless of what `yarn workspaces focus --production` pruned afterwards. Runtime stages now start from a clean `node:24-alpine` and reinstall prod-only deps | 253 MB / 257 MB after the fix (was 552/560). Containers run as `uid=1000(node)` with node as PID 1; `docker stop` returns in 0s and logs "shutting down", so exec-form CMD really does deliver SIGTERM. Compose: nutrition-api goes `Waiting → Healthy` before the gateway starts; gateway published `0.0.0.0:8080->8080`, nutrition-api bare `3001/tcp` and refused from the host; valid key → 200, wrong key → 401 |
+| 2026-07-30 | Claude Code | Phase 2 DoD | Two of four items now pass. The compose DoD item was re-verified properly: emulator → gateway container → nutrition-api container → Pizza 266 kcal / 11 g protein, with one gateway request id (`gw-472efdf6…`) traced into the internal service's own logs. The remaining two items (GitHub Release from a tag, CI green) are GitHub-side and blocked on H2–H4 | See the P2.8/P2.9 row; screenshot in `docs/screenshots/` |

@@ -6,11 +6,22 @@ Hard-won facts about this repo and this machine. They are here because each one 
 
 ## Where the project stands
 
-Phase 1 is complete and verified on an emulator. Phase 2 is done except Docker: both services, the app wiring, 71 tests, and both CI workflows are built and verified. **Next task is P3.1** (Swift/Vision), or P2.8–P2.9 if Docker becomes available.
+Phases 1 and 2 are complete: every agent task is done and verified by running it. **Next task is P3.1** (Swift/Vision).
 
-**Docker is not installed on this machine** — no `docker`, Docker Desktop, colima, podman or nerdctl. The Dockerfiles and `infra/docker-compose.yml` are therefore *written but never built*. Treat them as untested. Everything else in Phase 2 was verified by running it.
+Docker is installed now (29.6.2, Compose v5.3.1) and the compose stack is verified end to end from the emulator. Two of the four Phase 2 DoD items pass; the other two (GitHub Release from a tag, CI green) are GitHub-side.
 
 Human-only items still open: **H1** (real-device run + screenshot), **H2** (create the public GitHub repo — CI cannot go green without a remote), **H3/H4** (keystore + 4 secrets, then tag `v0.1.0`).
+
+## Running the stack in Docker
+
+```bash
+cd infra && cp .env.example .env   # set API_KEYS to match apps/mobile/.env
+docker compose up --build
+```
+
+Only the gateway is published (`:8080`); nutrition-api is internal, and curling `localhost:3001` from the host should be **refused** — if it succeeds, someone added a `ports:` entry and broke the whole point of the gateway.
+
+**Never make a runtime stage `FROM deps`.** Docker layers are additive, so a later `yarn workspaces focus --production` prunes nothing already baked in — that mistake shipped 552 MB images instead of 253 MB. Runtime stages start from a clean `node:24-alpine` and reinstall prod-only deps.
 
 ## Running the backend without Docker
 

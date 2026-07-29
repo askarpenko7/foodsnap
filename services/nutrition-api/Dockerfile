@@ -26,9 +26,21 @@ RUN yarn workspace @foodsnap/nutrition-api build
 
 # tsup bundles our own code and inlines foods.json, so the runtime image needs
 # only the third-party packages this service imports at run time.
-FROM deps AS runtime
+#
+# Starts from the clean base rather than `FROM deps`: layers are additive, so
+# inheriting the build stage would keep every dev dependency in the image no
+# matter what `--production` prunes afterwards (that mistake cost ~400 MB).
+FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /repo
+RUN corepack enable
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY apps/mobile/package.json apps/mobile/
+COPY packages/food-classifier/package.json packages/food-classifier/
+COPY packages/shared/package.json packages/shared/
+COPY services/gateway/package.json services/gateway/
+COPY services/nutrition-api/package.json services/nutrition-api/
 RUN yarn workspaces focus @foodsnap/nutrition-api --production && yarn cache clean
 COPY --from=build /repo/services/nutrition-api/dist services/nutrition-api/dist
 

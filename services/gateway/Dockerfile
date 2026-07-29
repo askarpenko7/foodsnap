@@ -20,9 +20,19 @@ COPY packages/shared packages/shared
 COPY services/gateway services/gateway
 RUN yarn workspace @foodsnap/gateway build
 
-FROM deps AS runtime
+# Clean base, not `FROM deps`: layers are additive, so inheriting the build
+# stage would ship every dev dependency regardless of what `--production` prunes.
+FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /repo
+RUN corepack enable
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY apps/mobile/package.json apps/mobile/
+COPY packages/food-classifier/package.json packages/food-classifier/
+COPY packages/shared/package.json packages/shared/
+COPY services/gateway/package.json services/gateway/
+COPY services/nutrition-api/package.json services/nutrition-api/
 RUN yarn workspaces focus @foodsnap/gateway --production && yarn cache clean
 COPY --from=build /repo/services/gateway/dist services/gateway/dist
 

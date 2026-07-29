@@ -14,7 +14,7 @@ I built this in 2026 to have a compact, honest example of an architecture I work
 
 It is a deliberately scoped demonstration project, not a product, and not something with years of history behind it. Where I chose the cheap path over the correct-at-scale path, the code says so in a comment.
 
-**Status:** the Android app classifies photos on-device and fetches nutrition through the gateway. Phase 3 (iOS/Vision parity, on-device history, Terraform) is next, and the Docker images are written but unverified — see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md), which tracks every task and what was actually checked.
+**Status:** the Android app classifies photos on-device and fetches nutrition from the containerized backend through the gateway. Phase 3 — iOS/Vision parity, on-device history, Terraform — is next. [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) tracks every task and, for each one, what was actually verified rather than assumed.
 
 ## Architecture
 
@@ -141,7 +141,7 @@ That builds the debug APK, installs it, and starts Metro. Snap a photo — or ta
 cd infra && cp .env.example .env && docker compose up --build
 ```
 
-Only the gateway is published, on `:8080`; the nutrition service is reachable only from inside the compose network. Then point the app at it — copy `apps/mobile/.env.example` to `apps/mobile/.env`, set `API_KEY` to match one of the gateway's `API_KEYS`, and rebuild (react-native-config bakes these in at build time, so a reload is not enough).
+Only the gateway is published, on `:8080`; the nutrition service is reachable only from inside the compose network, and compose waits for it to report healthy before starting the gateway. Both images are multi-stage and run as a non-root user, ~253 MB each. Then point the app at it — copy `apps/mobile/.env.example` to `apps/mobile/.env`, set `API_KEY` to match one of the gateway's `API_KEYS`, and rebuild (react-native-config bakes these in at build time, so a reload is not enough).
 
 > On an Android emulator the gateway URL must be **`http://10.0.2.2:8080`** — `10.0.2.2` is how the emulator reaches your host, whereas `localhost` is the emulator itself. The iOS simulator can use `localhost`, and a physical device needs your machine's LAN address.
 
