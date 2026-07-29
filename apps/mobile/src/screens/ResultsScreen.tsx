@@ -25,60 +25,15 @@ import { useClassifier } from '../hooks/useClassifier';
 import { useNutrition } from '../hooks/useNutrition';
 import { NutritionCard } from '../components/NutritionCard';
 import { Notice } from '../components/Notice';
+import {
+  defaultSelectionIndex,
+  formatConfidence,
+  isDimmed,
+  titleCase,
+} from '../lib/labels';
 import { colors, glass, radii, spacing, type } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Results'>;
-
-/** Rows below this confidence render dimmed, like the concept's "not food" row. */
-const DIM_BELOW = 0.3;
-
-/**
- * ML Kit's generic labeler happily returns category words — a pizza photo comes
- * back as "Food 96%, Pizza 95%, Cuisine 90%". They are not wrong, just useless
- * for a nutrition lookup ("food" matches nothing sensible), so they are demoted
- * out of the default selection and dimmed in the list, the same treatment the
- * design concept gives its "Tableware · not food" row. Users can still pick one.
- *
- * This is the client-side half of the MVP tradeoff documented in the classifier
- * module: a food-specific model would not need the stop list.
- */
-const GENERIC_LABELS = new Set([
-  'food',
-  'cuisine',
-  'dish',
-  'recipe',
-  'ingredient',
-  'produce',
-  'snack',
-  'fast food',
-  'junk food',
-  'finger food',
-  'baked goods',
-  'dessert',
-  'tableware',
-  'plate',
-  'bowl',
-  'cutlery',
-  'kitchen utensil',
-]);
-
-function isGeneric(label: string): boolean {
-  return GENERIC_LABELS.has(label.trim().toLowerCase());
-}
-
-/** Index of the first label specific enough to look up; falls back to the top hit. */
-function defaultSelectionIndex(results: Classification[]): number {
-  const specific = results.findIndex((r) => !isGeneric(r.label));
-  return specific === -1 ? 0 : specific;
-}
-
-function pct(confidence: number): string {
-  return `${Math.round(confidence * 100)}%`;
-}
-
-function titleCase(label: string): string {
-  return label.replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 function RadioRow({
   item,
@@ -89,7 +44,7 @@ function RadioRow({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const dimmed = item.confidence < DIM_BELOW || isGeneric(item.label);
+  const dimmed = isDimmed(item);
   return (
     <TouchableOpacity
       style={[
@@ -100,13 +55,13 @@ function RadioRow({
       onPress={onSelect}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      accessibilityLabel={`${item.label}, ${pct(item.confidence)}`}
+      accessibilityLabel={`${item.label}, ${formatConfidence(item.confidence)}`}
     >
       <View style={[styles.radioOuter, selected && { borderColor: colors.accent.primary }]}>
         {selected && <View style={styles.radioInner} />}
       </View>
       <Text style={styles.radioLabel}>{item.label}</Text>
-      <Text style={styles.radioConfidence}>{pct(item.confidence)}</Text>
+      <Text style={styles.radioConfidence}>{formatConfidence(item.confidence)}</Text>
     </TouchableOpacity>
   );
 }
@@ -186,7 +141,7 @@ export function ResultsScreen({ route }: Props) {
             {selected ? (
               <>
                 <Text style={styles.probablyMicro}>
-                  PROBABLY · {pct(selected.confidence)}
+                  PROBABLY · {formatConfidence(selected.confidence)}
                 </Text>
                 <Text style={styles.foodName}>{titleCase(selected.label)}</Text>
               </>

@@ -22,9 +22,10 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   const app = Fastify({
     logger: options.logger === false ? false : { level: config.logLevel },
     // The gateway stamps every request with an id; reuse it so one line of a
-    // user's report can be traced across both services.
+    // user's report can be traced across both services. Logged as `reqId`,
+    // Fastify's default — renaming it now needs a custom logController class,
+    // which is not worth a field name.
     requestIdHeader: 'x-request-id',
-    requestIdLogLabel: 'requestId',
   });
 
   app.get('/health', async (): Promise<HealthResponse> => {

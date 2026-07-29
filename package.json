@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "yarn workspaces foreach --all --parallel run typecheck"
+    "typecheck": "yarn workspaces foreach --all --parallel run typecheck",
+    "test": "yarn workspaces foreach --all --parallel run test"
   },
   "packageManager": "yarn@4.9.2",
   "devDependencies": {

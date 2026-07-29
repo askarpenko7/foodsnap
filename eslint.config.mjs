@@ -52,4 +52,12 @@ export default tseslint.config(
       '@typescript-eslint/no-require-imports': 'off',
     },
   },
+  // Test files and Jest setup get the Jest globals. The service suites import
+  // theirs from @jest/globals, but the React Native preset injects them.
+  {
+    files: ['**/__tests__/**/*.{ts,tsx,js}', '**/*.test.{ts,tsx}', '**/jest.setup.{js,ts}'],
+    languageOptions: {
+      globals: { ...globals.jest },
+    },
+  },
 );

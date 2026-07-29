@@ -68,7 +68,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const existing = Array.isArray(header) ? header[0] : header;
       return existing ?? `gw-${crypto.randomUUID()}`;
     },
-    requestIdLogLabel: 'requestId',
     trustProxy: true,
   });
 
