@@ -6,7 +6,9 @@ Hard-won facts about this repo and this machine. They are here because each one 
 
 ## Where the project stands
 
-Phases 1, 2 and 3 are all complete, DoD included. **Next task is P4.1** — the optional design build-out (glass tab bar, Diary, portion editor, search, Settings).
+Phases 1, 2 and 3 are all complete, DoD included. Phase 4 (the optional design build-out) is 3/6: glass tab bar, Diary with targets, and the portion editor are done. **Next task is P4.4** — search & manual log.
+
+**The one trap in this area:** P4.2 deleted `lib/history.ts` and HistoryScreen and deferred logging to P4.3, which left a window where *nothing* called `addEntry` and the Diary could never fill. If you split a store from its only writer again, either land both together or mark the dependent DoD row as superseded — a green tracker for a screen that no longer exists is exactly the failure this file guards against.
 
 The repo is live at https://github.com/askarpenko7/foodsnap with CI green and [v0.1.0](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) released as a signed APK. Docker, Terraform and the iOS simulator all work on this machine.
 
