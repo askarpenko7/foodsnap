@@ -43,14 +43,15 @@
 | Phase 3 — "iOS parity + infra + shine" (optional) | 6/6 | 0/2 | 3/3 | **complete** |
 | Phase 4 — design build-out (optional) | 6/6 | 0/0 | 2/3 | all six screens built |
 
-**Now:** nothing in progress · **Phases 1–3 complete; Phase 4 is 6/6.** All seven concept screens exist. **Next up:** nothing queued — H5 (demo GIF) is the highest-value remaining item.
+**Now:** nothing in progress · **Phases 1–3 complete; Phase 4 is 6/6.** All seven concept screens exist. **Next up:** nothing queued. The brief and the design concept are both fully built.
 
 **Repo:** https://github.com/askarpenko7/foodsnap · CI green · [v0.1.0 released](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) with a signed APK.
 
 **Blocked on human:** nothing is blocking further agent work.
 - **H1 is not possible as written** — no Android device (iPhones only). Emulator evidence stands, honestly labelled.
 - **An iPhone run** is the valuable substitute: it is the only way to judge iOS label quality, which the Simulator gets wrong (P3.2). Needs a free Apple developer account and a signing team on the Xcode target.
-- **H5/H6** — demo GIF for the README hero, and the CV/LinkedIn entry.
+- **H6** — post the CV/LinkedIn entry (copy drafted and handed over).
+- **Run it on your iPhone** — signing is configured; this is the only way to judge iOS label quality.
 
 ---
 
@@ -284,8 +285,9 @@
   Extend coverage where thin (history persistence logic, iOS-path app logic with module mocked, matcher edge cases).
   **Verify:** `yarn test` green.
 
-- [ ] **H5 — *(human)* Demo GIF**
+- [x] **H5 — *(human)* Demo GIF** *(done by agent — no human step needed after all)*
   Record a 10–15 s demo GIF for the README hero.
+  *Recorded on the emulator with `adb screenrecord` and converted with ffmpeg: 15 s at 2.4× playback, 300 px, 530 KB. Shows the full loop — empty diary → camera → on-device labels → portion editor → totals at 681 / 2,200. Committed as `docs/screenshots/foodsnap-demo.gif` and set as the README hero.*
 
 - [ ] **H6 — *(human)* CV / LinkedIn**
   Add the repo to the CV (Selected Projects) and LinkedIn once Phase 2 is done.
