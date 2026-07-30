@@ -3,10 +3,10 @@
 Point your camera at food, get labels from an on-device classifier, then nutrition facts from a gateway-fronted TypeScript backend.
 
 <p align="center">
-  <img src="docs/screenshots/foodsnap-demo.gif" width="300" alt="Snapping a pizza, picking the portion, and the diary totals updating" />
+  <img src="docs/screenshots/foodsnap-demo.gif" width="300" alt="Snapping a pizza on an iPhone, picking the portion, and the diary totals updating" />
 </p>
 
-*Android emulator, unedited apart from playback speed: an empty diary, a photo classified on-device, the portion picked as "2 slices", and the day's totals landing at 681 / 2,200 kcal. "Food", "Cuisine" and "Fast food" are dimmed because they are category words, not dishes — see the tradeoff below.*
+*iPhone 13 Pro Max, unedited apart from playback speed: the live viewfinder, a photo classified on-device as `pizza 73%` — with `cutting board` ranked below `pepperoni`, which is the tiered ranking doing its job — then the portion set to 138 g and the day's totals moving to 5,123 kcal, and Settings reporting the gateway healthy and Vision ready. Everything up to the nutrition lookup runs with no network.*
 
 ## Why this exists
 
