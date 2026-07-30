@@ -5,6 +5,7 @@ import {
   clearDiary,
   dayKey,
   dayLabel,
+  dayTitle,
   loadEntries,
   loadTargets,
   saveTargets,
@@ -47,6 +48,30 @@ describe('dayKey / shiftDay / dayLabel', () => {
     expect(dayLabel(TODAY)).toBe('TODAY');
     expect(dayLabel(YESTERDAY)).toBe('YESTERDAY');
     expect(dayLabel('2020-01-05')).not.toBe('TODAY');
+  });
+});
+
+/**
+ * The header used to render dayLabel and a title together, which read as
+ * "Today Today" and as "Diary" for any past date.
+ */
+describe('dayTitle', () => {
+  it('names today and yesterday in words', () => {
+    expect(dayTitle(TODAY)).toBe('Today');
+    expect(dayTitle(YESTERDAY)).toBe('Yesterday');
+  });
+
+  it('renders an older day as weekday plus DD.MM.YYYY', () => {
+    // 2026-12-01 is a Tuesday.
+    expect(dayTitle('2026-12-01')).toMatch(/^\w+, 01\.12\.2026$/);
+  });
+
+  it('zero-pads single-digit days and months', () => {
+    expect(dayTitle('2026-03-05')).toContain('05.03.2026');
+  });
+
+  it('never returns the uppercase micro form the header used to show', () => {
+    expect(dayTitle(TODAY)).not.toBe(dayLabel(TODAY));
   });
 });
 

@@ -15,6 +15,7 @@ import {
   DEFAULT_TARGETS,
   dayKey,
   dayLabel,
+  dayTitle,
   loadEntries,
   loadTargets,
   shiftDay,
@@ -133,8 +134,9 @@ export function DiaryScreen() {
           <Text style={styles.chevronGlyph}>‹</Text>
         </TouchableOpacity>
         <View style={styles.dateTitleWrap}>
-          <Text style={styles.dateMicro}>{dayLabel(day)}</Text>
-          <Text style={styles.dateTitle}>{dayLabel(day) === 'TODAY' ? 'Today' : 'Diary'}</Text>
+          <Text style={styles.dateTitle} numberOfLines={1} adjustsFontSizeToFit>
+            {dayTitle(day)}
+          </Text>
         </View>
         <TouchableOpacity
           onPress={() => goToDay(1)}
@@ -229,8 +231,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.gutter,
     paddingVertical: 10,
   },
-  dateTitleWrap: { alignItems: 'center', gap: 2 },
-  dateMicro: { ...type.microLabel, color: colors.accent.primaryText },
+  dateTitleWrap: { flex: 1, alignItems: 'center' },
   dateTitle: { ...type.title, fontSize: 26, color: colors.text.primary },
   chevron: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   chevronGlyph: { fontSize: 26, color: colors.text.primary },

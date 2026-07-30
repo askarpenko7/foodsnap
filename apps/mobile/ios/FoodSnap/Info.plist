@@ -60,6 +60,10 @@
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>FoodSnap uses the camera to photograph your plate. The photo is classified on this device and never uploaded.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FoodSnap opens your photo library so you can pick a picture of your food instead of taking one. Photos stay on this device.</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 </dict>

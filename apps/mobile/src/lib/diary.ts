@@ -73,7 +73,28 @@ export function shiftDay(key: string, days: number): string {
   return dayKey(date);
 }
 
-/** "TODAY" / "YESTERDAY" / "MON 27 JUL" — for the diary date header. */
+/**
+ * The diary's big header: "Today", "Yesterday", or "Wednesday, 01.12.2026".
+ *
+ * Distinct from {@link dayLabel}, which is the uppercase short form the micro
+ * labels use ("KCAL · TODAY"). The header showed both at once and read as
+ * "Today Today", so they are now separate on purpose.
+ */
+export function dayTitle(key: string): string {
+  if (key === dayKey()) return 'Today';
+  if (key === shiftDay(dayKey(), -1)) return 'Yesterday';
+
+  const [y, m, d] = key.split('-').map(Number);
+  const date = new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+  // Weekday follows the device locale; the numeric part is fixed DD.MM.YYYY so
+  // it cannot silently reorder into the American form on some phones.
+  const weekday = date.toLocaleDateString(undefined, { weekday: 'long' });
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  return `${weekday}, ${dd}.${mm}.${date.getFullYear()}`;
+}
+
+/** "TODAY" / "YESTERDAY" / "MON 27 JUL" — the uppercase form for micro labels. */
 export function dayLabel(key: string): string {
   if (key === dayKey()) return 'TODAY';
   if (key === shiftDay(dayKey(), -1)) return 'YESTERDAY';
