@@ -2,17 +2,17 @@
 
 Before writing any code in this repo:
 
-0. Read [`MEMORY.md`](MEMORY.md) **first**. It holds the environment gotchas and product decisions that are not discoverable from the code — each one already cost a previous agent time (`yarn` needs `corepack`, the JDK override, how to drive the emulator without wasting a cycle). Add to it when you learn something similar.
-1. Read [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) **in full**. It is the single source of truth for what FoodSnap is and how every piece must be built.
+0. Read [`docs/MEMORY.md`](docs/MEMORY.md) **first**. It holds the environment gotchas and product decisions that are not discoverable from the code — each one already cost a previous agent time (`yarn` needs `corepack`, the JDK override, how to drive the emulator without wasting a cycle). Add to it when you learn something similar.
+1. Read [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) **in full**. It is the single source of truth for what FoodSnap is and how every piece must be built.
 2. For any UI work, [`docs/DESIGN.md`](docs/DESIGN.md) is the visual source of truth — tokens, components, per-screen specs (dark-only).
-3. Open [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) — the live task tracker. Pick the next available task in the current phase and follow the tracking protocol at the top of that file: claim (`[~]`) → implement → run the task's **Verify** line → tick (`[x]`) → update the dashboard → append a Work Log row → commit.
+3. Open [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — the live task tracker. Pick the next available task in the current phase and follow the tracking protocol at the top of that file: claim (`[~]`) → implement → run the task's **Verify** line → tick (`[x]`) → update the dashboard → append a Work Log row → commit.
 
 A task is done only when its Verify line actually passed. Phases complete only when their Definition of Done checklist is fully checked.
 
 ## Working rules (from the brief §10 — binding)
 
 1. Work strictly in phase order; within a phase, get a walking skeleton before polishing.
-2. Verify current stable versions of RN, ML Kit, Fastify, and tooling before pinning anything — record them in the Verified Versions table in `IMPLEMENTATION_PLAN.md`.
+2. Verify current stable versions of RN, ML Kit, Fastify, and tooling before pinning anything — record them in the Verified Versions table in `docs/IMPLEMENTATION_PLAN.md`.
 3. Conventional-ish commit messages scoped per package (`mobile:`, `gateway:`, `classifier:`).
 4. Never invent nutrition data sources requiring API keys; the bundled JSON is the MVP source.
 5. If a step needs a human (keystore, repo secrets, running on a physical device, `terraform apply`), stop and print exact instructions instead of faking it.

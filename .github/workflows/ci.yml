@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           # Matches the Docker base image and the tsup target (see the Verified
-          # Versions table in IMPLEMENTATION_PLAN.md).
+          # Versions table in docs/IMPLEMENTATION_PLAN.md).
           node-version: 24
 
       - name: Enable Corepack

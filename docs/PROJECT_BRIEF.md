@@ -1,6 +1,6 @@
 # FoodSnap — Project Brief
 
-> **How to use this file:** Drop it in the repo root (as `PROJECT_BRIEF.md`, and optionally copy it to `CLAUDE.md` / `AGENTS.md`). It is the single source of truth for any AI coding agent working on this project. Agent: read this entire file before writing any code, then implement phase by phase. Do not skip the Definition of Done checklists.
+> **How to use this file:** It is the single source of truth for any AI coding agent working on this project, and it lives in `docs/` with the rest of the written material — [`CLAUDE.md`](../CLAUDE.md) at the repo root points here, which is what an agent reads first. Agent: read this entire file before writing any code, then implement phase by phase. Do not skip the Definition of Done checklists.
 
 ---
 
@@ -59,7 +59,7 @@ foodsnap/
 ├── package.json                      # workspaces root
 ├── tsconfig.base.json                # strict; extended by every workspace
 ├── LICENSE                           # MIT
-├── PROJECT_BRIEF.md                  # this file
+├── docs/PROJECT_BRIEF.md             # this file
 └── README.md
 ```
 
@@ -195,7 +195,7 @@ Swift/Vision implementation (iOS simulator OK); HistoryScreen + MMKV; Terraform 
 
 ## 11. Kickoff prompt (paste this to the agent in the repo root)
 
-> Read `PROJECT_BRIEF.md` in full. Implement **Phase 1** exactly as specified: scaffold the Yarn-workspaces monorepo, the TypeScript React Native app (New Architecture) with Capture and Results screens, and the `food-classifier` TurboModule with the Kotlin ML Kit implementation. Verify current stable versions before pinning dependencies. When you need me (device runs, signing, secrets), stop and give me exact instructions. Finish by telling me how to run it on Android and what Phase 2 will add.
+> Read `docs/PROJECT_BRIEF.md` in full. Implement **Phase 1** exactly as specified: scaffold the Yarn-workspaces monorepo, the TypeScript React Native app (New Architecture) with Capture and Results screens, and the `food-classifier` TurboModule with the Kotlin ML Kit implementation. Verify current stable versions before pinning dependencies. When you need me (device runs, signing, secrets), stop and give me exact instructions. Finish by telling me how to run it on Android and what Phase 2 will add.
 
 ## 12. Human checklist (things only Alexander can do)
 

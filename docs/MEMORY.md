@@ -2,7 +2,7 @@
 
 Hard-won facts about this repo and this machine. They are here because each one cost a previous agent real time, and none of them are discoverable by reading the code. Update this file when you learn something that would have saved you an hour.
 
-**Document map:** [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) = what to build (source of truth) · [`docs/DESIGN.md`](docs/DESIGN.md) = how it looks · [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) = task tracker + Work Log (claim a task, verify it for real, tick it, append a row) · [`CLAUDE.md`](CLAUDE.md) = the agent loop.
+**Document map:** [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) = what to build (source of truth) · [`DESIGN.md`](DESIGN.md) = how it looks · [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) = task tracker + Work Log (claim a task, verify it for real, tick it, append a row) · [`CLAUDE.md`](../CLAUDE.md) = the agent loop.
 
 ## Where the project stands
 

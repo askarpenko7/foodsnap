@@ -14,7 +14,7 @@ I built this in 2026 to have a compact, honest example of an architecture I work
 
 It is a deliberately scoped demonstration project, not a product, and not something with years of history behind it. Where I chose the cheap path over the correct-at-scale path, the code says so in a comment.
 
-**Status:** working on Android and iOS. Photos are classified on-device — ML Kit on Android, Vision on iOS — nutrition comes from the containerized backend through the gateway, and portions are logged to a local diary with daily targets. Signed APKs ship from CI to GitHub Releases. [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) tracks every task and, for each one, what was actually verified rather than assumed — including the parts that are not.
+**Status:** working on Android and iOS. Photos are classified on-device — ML Kit on Android, Vision on iOS — nutrition comes from the containerized backend through the gateway, and portions are logged to a local diary with daily targets. Signed APKs ship from CI to GitHub Releases. [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) tracks every task and, for each one, what was actually verified rather than assumed — including the parts that are not.
 
 ## Architecture
 
@@ -63,7 +63,8 @@ packages/shared/          API contract types imported by the app and both servic
 services/gateway/         Fastify API gateway — the only public entry point
 services/nutrition-api/   Fastify nutrition lookup, internal only
 infra/                    docker-compose.yml + Terraform for Cloud Run
-docs/DESIGN.md            visual source of truth: tokens, components, screens
+docs/                     DESIGN.md (visual source of truth), the project brief,
+                          and the implementation plan with its work log
 ```
 
 TypeScript is `strict` everywhere. ESLint and Prettier are configured once at the root and govern every workspace.
@@ -248,6 +249,14 @@ The workflow derives `versionName` from the tag (`v0.1.0` → `0.1.0`) and `vers
 3. Allow it, tap the APK again, and install.
 
 Play Protect may show a "scan this app?" prompt for an app it has not seen before; that is expected for anything distributed this way, and installing anyway is fine for a build you signed yourself. Upgrades install over the top as long as they are signed with the same keystore.
+
+## How this repo was built
+
+I built it by directing AI coding agents against the brief in [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md). That is why `CLAUDE.md` sits in the root — it is the entrypoint an agent reads first, and moving it elsewhere would just break it.
+
+Stating that plainly because the interesting question isn't whether an agent typed a file, it's what stops one from producing something that merely looks finished. Here that job belongs to [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md): every task carries a **Verify** line written before the work starts, a task is only ticked when that line actually passed, and the work log records what was checked against what was assumed. Where something couldn't be verified, it says so — every Android claim here rests on an emulator, and it is labelled that way rather than rounded up.
+
+The other half is hardware, and it is the half that kept finding things. The camera crashed on a real iPhone with no permission prompt at all, because iOS terminates the process over a missing purpose string and the Simulator has no camera to reveal it. The close button sat under the system clock. Returning from a save pushed the diary back as a sheet instead of popping to it. And the classifier's confidence window was discarding the right answer in native code — see [above](#how-much-of-that-is-the-model-and-how-much-was-my-window). None of those show up in a passing test suite, which is roughly the point.
 
 ## Roadmap
 
