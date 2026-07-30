@@ -19,10 +19,20 @@ import Vision
 @objc(FoodClassifierImpl)
 public final class FoodClassifierImpl: NSObject {
 
-  /** Mirrors the TS spec: top 5, sorted by confidence descending. */
-  private static let topK = 5
-  /** Mirrors the TS spec: anything less confident than this is noise. */
-  private static let confidenceFloor: Float = 0.1
+  /**
+   * Candidates handed to JS, which ranks them and shows the best five.
+   *
+   * Both numbers were originally 5 and 0.1, copied from the ML Kit side. On
+   * real photos that threw away the answer: Vision returns ~1300 labels and
+   * spreads confidence thinly across them, so a plate of salad scored
+   * `tableware 49%, utensil 49%, bowl 49%, food 46%, salad 46%` while the
+   * useful detail — lettuce 4.7%, tomato 4.1%, cucumber 2.2% — sat below a 10%
+   * floor and never reached the app at all. Object and material labels
+   * routinely outscore the food, so the filtering has to happen after ranking,
+   * not before it.
+   */
+  private static let topK = 20
+  private static let confidenceFloor: Float = 0.01
 
   @objc public static let errorFileNotFound = "E_FILE_NOT_FOUND"
   @objc public static let errorClassificationFailed = "E_CLASSIFICATION_FAILED"

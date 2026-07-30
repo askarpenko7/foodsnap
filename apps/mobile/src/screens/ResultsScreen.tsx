@@ -32,6 +32,7 @@ import {
   defaultSelectionIndex,
   formatConfidence,
   isDimmed,
+  rankLabels,
   titleCase,
 } from '../lib/labels';
 import { colors, glass, radii, spacing, type } from '../theme';
@@ -83,16 +84,19 @@ export function ResultsScreen({ route }: Props) {
     retry();
   }, [retry]);
 
-  const selectedIndex = useMemo(
-    () =>
-      chosenIndex ?? (state.status === 'ready' ? defaultSelectionIndex(state.results) : 0),
-    [chosenIndex, state],
+  // The native side hands over ~20 candidates so this can promote a real food
+  // over the crockery that outscores it. Only the best five are ever shown.
+  const candidates = useMemo(
+    () => (state.status === 'ready' ? rankLabels(state.results).slice(0, 5) : []),
+    [state],
   );
 
-  const selected: Classification | undefined = useMemo(
-    () => (state.status === 'ready' ? state.results[selectedIndex] : undefined),
-    [state, selectedIndex],
+  const selectedIndex = useMemo(
+    () => chosenIndex ?? defaultSelectionIndex(candidates),
+    [chosenIndex, candidates],
   );
+
+  const selected: Classification | undefined = candidates[selectedIndex];
 
   // Re-runs whenever the selection changes, so tapping an alternative looks up
   // that food instead.
@@ -176,11 +180,11 @@ export function ResultsScreen({ route }: Props) {
               </>
             )}
 
-            {state.results.length > 1 && (
+            {candidates.length > 1 && (
               <>
                 <Text style={styles.sectionMicro}>WHICH ONE IS IT?</Text>
                 <View style={styles.radioList}>
-                  {state.results.map((item, index) => (
+                  {candidates.map((item, index) => (
                     <RadioRow
                       key={`${item.label}-${index}`}
                       item={item}
@@ -279,19 +283,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.sectionGap,
     marginBottom: 2,
   },
-  radioList: { gap: spacing.listGap },
+  radioList: {},
   radioRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.surface.cardNested,
-    borderRadius: radii.row,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    paddingHorizontal: 14,
+    paddingHorizontal: 2,
     paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line.hairline,
   },
-  radioRowSelected: { borderColor: colors.accent.primary },
+  radioRowSelected: { borderBottomColor: colors.accent.primary },
   radioRowDimmed: { opacity: 0.45 },
   radioOuter: {
     width: 20,

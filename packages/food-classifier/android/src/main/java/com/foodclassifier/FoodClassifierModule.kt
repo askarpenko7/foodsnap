@@ -73,6 +73,20 @@ class FoodClassifierModule(reactContext: ReactApplicationContext) :
 
   companion object {
     const val NAME = NativeFoodClassifierSpec.NAME
+
+    /**
+     * Deliberately narrower than the iOS side, which hands JS 20 candidates from
+     * a 0.01 floor. That was forced by Vision spreading confidence across ~1300
+     * labels until the real food sat below a 0.1 floor; ML Kit's default labeler
+     * does not behave that way — it applies its own 0.5 threshold internally and
+     * returns a handful of well-separated labels, so a wider window here would
+     * only add candidates ML Kit has already rejected.
+     *
+     * The ranking that matters is shared and lives in JS either way
+     * (`apps/mobile/src/lib/labels.ts`). If these ever need widening, ML Kit's
+     * own threshold has to move first via `ImageLabelerOptions.Builder`, and
+     * that is a change to make against a real device rather than by symmetry.
+     */
     private const val TOP_K = 5
     private const val CONFIDENCE_FLOOR = 0.1f
   }

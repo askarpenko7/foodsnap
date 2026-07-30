@@ -140,12 +140,6 @@ export function CaptureScreen() {
         />
       )}
 
-      {/* Scrims so the controls stay legible over a bright plate. */}
-      {previewActive && (
-        <View style={[styles.scrimTop, { height: topInset + 90 }]} pointerEvents="none" />
-      )}
-      {previewActive && <View style={styles.scrimBottom} pointerEvents="none" />}
-
       <View style={[styles.content, { paddingTop: topInset, paddingBottom: bottomInset }]}>
         <View style={styles.topBar}>
           <TouchableOpacity
@@ -227,15 +221,6 @@ export function CaptureScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg.deep },
   content: { flex: 1, paddingHorizontal: spacing.gutter },
-  scrimTop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(11,12,15,.55)' },
-  scrimBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 230,
-    backgroundColor: 'rgba(11,12,15,.6)',
-  },
   topBar: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   closeButton: {
     width: 40,
@@ -252,7 +237,21 @@ const styles = StyleSheet.create({
   cornerTR: { top: 0, right: 0, borderTopRightRadius: 16 },
   cornerBL: { bottom: 0, left: 0, borderBottomLeftRadius: 16 },
   cornerBR: { bottom: 0, right: 0, borderBottomRightRadius: 16 },
-  hint: { ...type.body, color: colors.text.secondary, textAlign: 'center' },
+  /**
+   * The only control here without a surface of its own, so it carries a shadow
+   * instead. The screen used to darken the whole top and bottom of the
+   * viewfinder to keep this legible, which cost far more of the preview than
+   * one line of text is worth — the chips are already 92% opaque and the
+   * shutter is solid white.
+   */
+  hint: {
+    ...type.body,
+    color: colors.text.primary,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
   settingsButton: {
     alignSelf: 'center',
     backgroundColor: colors.fill.chip,

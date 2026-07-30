@@ -1,6 +1,7 @@
 import type { Classification } from 'react-native-food-classifier';
 import {
   DIM_BELOW,
+  rankLabels,
   defaultSelectionIndex,
   formatConfidence,
   isDimmed,
@@ -117,5 +118,72 @@ describe('titleCase', () => {
 
   it('leaves an already-capitalised label unchanged', () => {
     expect(titleCase('Pizza')).toBe('Pizza');
+  });
+});
+
+/**
+ * Real Vision output from an iPhone 13 Pro Max. Every one of these had the food
+ * outranked by the furniture, and two had no food label in the top five at all
+ * — which is what forced ranking by tier instead of by confidence.
+ */
+describe('ranking real device output', () => {
+  it('promotes the salad over the crockery that outscored it', () => {
+    const ranked = rankLabels([
+      { label: 'tableware', confidence: 0.494 },
+      { label: 'utensil', confidence: 0.494 },
+      { label: 'bowl', confidence: 0.494 },
+      { label: 'food', confidence: 0.462 },
+      { label: 'salad', confidence: 0.462 },
+      { label: 'lettuce', confidence: 0.047 },
+      { label: 'tomato', confidence: 0.041 },
+    ]);
+    expect(ranked[0]?.label).toBe('salad');
+    // A 4% food still beats a 49% object.
+    expect(ranked[1]?.label).toBe('lettuce');
+    expect(ranked.at(-1)?.label).toBe('bowl');
+  });
+
+  it('surfaces a food that the old top-5 cap discarded entirely', () => {
+    // Pierogi: not one food label in Vision's top five.
+    const ranked = rankLabels([
+      { label: 'structure', confidence: 0.93 },
+      { label: 'wood processed', confidence: 0.9 },
+      { label: 'utensil', confidence: 0.88 },
+      { label: 'tableware', confidence: 0.88 },
+      { label: 'plate', confidence: 0.88 },
+      { label: 'dumpling', confidence: 0.06 },
+    ]);
+    expect(ranked[0]?.label).toBe('dumpling');
+    expect(defaultSelectionIndex(ranked)).toBe(0);
+  });
+
+  it('prefers a category over an object when no real food is offered', () => {
+    // The pie shot: tableware/utensil/plate/food/dessert, nothing nameable.
+    const ranked = rankLabels([
+      { label: 'tableware', confidence: 0.92 },
+      { label: 'utensil', confidence: 0.92 },
+      { label: 'plate', confidence: 0.9 },
+      { label: 'food', confidence: 0.84 },
+      { label: 'dessert', confidence: 0.84 },
+    ]);
+    expect(['food', 'dessert']).toContain(ranked[0]?.label);
+    expect(ranked[0]?.label).not.toBe('tableware');
+  });
+
+  it('leaves a confident specific guess on top when there is one', () => {
+    const ranked = rankLabels([
+      { label: 'food', confidence: 0.96 },
+      { label: 'pizza', confidence: 0.95 },
+    ]);
+    expect(ranked[0]?.label).toBe('pizza');
+  });
+
+  it('does not mutate its input', () => {
+    const input = [
+      { label: 'tableware', confidence: 0.9 },
+      { label: 'pizza', confidence: 0.1 },
+    ];
+    rankLabels(input);
+    expect(input[0]?.label).toBe('tableware');
   });
 });

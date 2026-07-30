@@ -142,12 +142,14 @@ export function NutritionCard({
 }
 
 const styles = StyleSheet.create({
+  // Flat inside the Results sheet: a filled card on a filled sheet was the
+  // "big semi-transparent black panel" that made the screen feel heavy.
   card: {
-    backgroundColor: colors.surface.card,
-    borderRadius: radii.card,
-    padding: spacing.cardPadding,
     gap: 14,
     marginTop: spacing.sectionGap,
+    paddingTop: spacing.sectionGap,
+    borderTopWidth: 1,
+    borderTopColor: colors.line.hairline,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   micro: { ...type.microLabel, color: colors.text.tertiary },

@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, type } from '../theme';
+import { colors, type } from '../theme';
 
 export function Notice({ tone, title, body }: { tone: string; title: string; body: string }) {
   return (
@@ -20,14 +20,16 @@ export function Notice({ tone, title, body }: { tone: string; title: string; bod
 }
 
 const styles = StyleSheet.create({
+  // Deliberately not a card: stacking a filled, bordered panel inside an
+  // already-filled card read as a heavy black slab on device. A tone dot and a
+  // left rule carry the same meaning with far less weight.
   notice: {
     flexDirection: 'row',
-    gap: 10,
-    backgroundColor: colors.fill.subtle,
-    borderColor: colors.bar.track,
-    borderWidth: 1,
-    borderRadius: radii.row,
-    padding: 14,
+    gap: 12,
+    paddingVertical: 4,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.bar.track,
   },
   dot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
   body: { flex: 1, gap: 2 },
