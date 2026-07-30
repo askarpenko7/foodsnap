@@ -45,3 +45,11 @@ jest.mock('react-native-safe-area-context', () => {
     useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
   };
 });
+
+// vision-camera is a native view + hybrid object; under Jest there is no camera
+// and no native module, so the Capture screen renders its "no camera" state.
+jest.mock('react-native-vision-camera', () => ({
+  Camera: 'Camera',
+  useCameraDevice: () => undefined,
+  useCameraPermission: () => ({ hasPermission: false, requestPermission: jest.fn() }),
+}));
