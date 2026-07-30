@@ -7,7 +7,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -62,6 +62,15 @@ function ViewfinderCorners() {
 
 export function CaptureScreen() {
   const navigation = useNavigation<Nav>();
+  // A screen presented as a native modal gets its own container, and the
+  // provider reports zero insets for it — which is how the close button ended
+  // up level with the status bar clock. `initialWindowMetrics` is a static
+  // snapshot of the *window's* insets, which is exactly right here because this
+  // modal covers the whole window.
+  const insets = useSafeAreaInsets();
+  const fallback = initialWindowMetrics?.insets;
+  const topInset = Math.max(insets.top, fallback?.top ?? 0);
+  const bottomInset = Math.max(insets.bottom, fallback?.bottom ?? 0);
   const [cameraDenied, setCameraDenied] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
 
@@ -102,7 +111,7 @@ export function CaptureScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bg.deep} />
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View style={[styles.safe, { paddingTop: topInset, paddingBottom: bottomInset }]}>
         <View style={styles.topBar}>
           <TouchableOpacity
             style={[styles.closeButton, glass.chip]}
@@ -160,7 +169,7 @@ export function CaptureScreen() {
           {/* Balances the Library chip so the shutter stays centered. */}
           <View style={styles.libraryChipGhost} />
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

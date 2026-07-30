@@ -8,7 +8,8 @@
     "start": "react-native start",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "tokens:generate": "node scripts/generate-tokens.mjs"
+    "tokens:generate": "node scripts/generate-tokens.mjs",
+    "ios:device": "bash scripts/run-ios-device.sh"
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.86.2",
