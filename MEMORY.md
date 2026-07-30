@@ -50,7 +50,8 @@ The gateway **refuses to start without `API_KEYS`** — that is deliberate, not 
   `org.gradle.java.home=/Applications/Android Studio.app/Contents/jbr/Contents/Home`.
   The README documents this as a prerequisite. If a build suddenly fails on Java version, check that file first.
 - **Android tooling needs the SDK env exported** in each shell: `export ANDROID_HOME=~/Library/Android/sdk; export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator`.
-- **The app's package id is `com.foodsnap`**, not `com.foodsnapmobile` (the workspace is named `foodsnap-mobile`, which misleads). `adb` commands need `com.foodsnap`.
+- **The two platforms have different bundle ids, on purpose.** Android is `com.foodsnap` (what v0.1.0 shipped as; changing it would orphan that release). iOS is **`com.askarpenko7.foodsnap`** because Apple's identifier namespace is global and `com.foodsnap` is already registered to somebody else — a device build fails with "cannot be registered to your development team". `adb` commands need `com.foodsnap`; `xcrun simctl` needs `com.askarpenko7.foodsnap`. Note the workspace is named `foodsnap-mobile`, which misleads on both.
+- **iOS signing is configured** for the personal team `Alexander Karpenko` (`MZJS78V7NA`) with automatic signing, verified against `-destination 'generic/platform=iOS'`. A device build needs `-allowProvisioningUpdates` the first time.
 - **AVDs available:** `Pixel_8_API_35`, `Pixel_6_Pro_API_35`. One is often already booted — check `adb devices` before starting another.
 - **Metro is often already running on 8081** from a previous session; starting another fails with `EADDRINUSE`. Check `curl -s http://localhost:8081/status` first and reuse it.
 - **System CocoaPods is broken** (Homebrew Ruby 4.0 missing `ffi`). For iOS, use the template Gemfile with a project-local bundle: `bundle config path vendor/bundle` (already gitignored), then `bundle exec pod install`.
