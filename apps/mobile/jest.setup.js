@@ -26,6 +26,18 @@ jest.mock('react-native-image-picker', () => ({
   launchImageLibrary: jest.fn(),
 }));
 
+// react-native-mmkv 4 already swaps itself for an in-memory store when it sees
+// JEST_WORKER_ID, so the history tests exercise the real module. What it cannot
+// survive is its Nitro dependency, which calls TurboModuleRegistry.getEnforcing
+// at import time and throws before that mock ever gets a chance. Stubbing the
+// module keeps the import chain intact; MMKV takes it from there.
+jest.mock('react-native-nitro-modules', () => ({
+  NitroModules: {
+    createHybridObject: jest.fn(),
+    box: jest.fn(),
+  },
+}));
+
 jest.mock('react-native-safe-area-context', () => {
   const actual = jest.requireActual('react-native-safe-area-context');
   return {

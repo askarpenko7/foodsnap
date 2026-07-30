@@ -3,11 +3,13 @@ import { DarkTheme, NavigationContainer, type Theme } from '@react-navigation/na
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CaptureScreen } from '../screens/CaptureScreen';
 import { ResultsScreen } from '../screens/ResultsScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { colors } from '../theme';
 
 export type RootStackParamList = {
   Capture: undefined;
   Results: { imageUri: string };
+  History: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -49,6 +51,14 @@ export function RootNavigator() {
         <Stack.Screen
           name="Results"
           component={ResultsScreen}
+          options={{ headerShown: false }}
+        />
+        {/* Headerless like the others: the screen draws the design's own large
+            title and back chevron. The concept's floating tab bar replaces this
+            push navigation in P4.1. */}
+        <Stack.Screen
+          name="History"
+          component={HistoryScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

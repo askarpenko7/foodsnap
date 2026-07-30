@@ -5158,6 +5158,8 @@ __metadata:
     react-native-config: "npm:1.6.1"
     react-native-food-classifier: "npm:*"
     react-native-image-picker: "npm:8.2.1"
+    react-native-mmkv: "npm:4.3.2"
+    react-native-nitro-modules: "npm:0.36.3"
     react-native-safe-area-context: "npm:5.8.0"
     react-native-screens: "npm:4.26.2"
     react-test-renderer: "npm:19.2.3"
@@ -7640,6 +7642,27 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: 10c0/82b6c51ece8d16806975aff7675d26280fdd2391c05ca9415620195cc6643ca0db4601d3b24e117d7f5331c2e55ba7c03090d276e55b3b5687a636245428a047
+  languageName: node
+  linkType: hard
+
+"react-native-mmkv@npm:4.3.2":
+  version: 4.3.2
+  resolution: "react-native-mmkv@npm:4.3.2"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+    react-native-nitro-modules: "*"
+  checksum: 10c0/47c86114ee0ddbc8245dda174f419df9390a8ce0a6bcee0ded5eabd0b257e2b49257ddaf3b39eb5ab95ad7eed0ffa6d6b1e7c6bf8a3e56e6508408e49b98ed07
+  languageName: node
+  linkType: hard
+
+"react-native-nitro-modules@npm:0.36.3":
+  version: 0.36.3
+  resolution: "react-native-nitro-modules@npm:0.36.3"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10c0/a275500379e22c128e520fa155100e298f26155638222555869c0775a3c4678995297c57483c09b91c183b06c6456f59b0aa14d9d63a9446e1723fbe737a3479
   languageName: node
   linkType: hard
 

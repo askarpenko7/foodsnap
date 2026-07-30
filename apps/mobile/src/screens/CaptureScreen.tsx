@@ -103,7 +103,17 @@ export function CaptureScreen() {
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bg.deep} />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <Text style={styles.brandMicro}>FOODSNAP</Text>
+        <View style={styles.topBar}>
+          <Text style={styles.brandMicro}>FOODSNAP</Text>
+          <TouchableOpacity
+            style={styles.historyLink}
+            onPress={() => navigation.navigate('History')}
+            accessibilityRole="button"
+            accessibilityLabel="Open scan history"
+          >
+            <Text style={styles.historyLinkText}>History</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.finderArea}>
           <View style={styles.finder}>
@@ -156,12 +166,15 @@ export function CaptureScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg.deep },
   safe: { flex: 1, paddingHorizontal: spacing.gutter },
-  brandMicro: {
-    ...type.microLabel,
-    color: colors.text.tertiary,
-    textAlign: 'center',
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 8,
   },
+  brandMicro: { ...type.microLabel, color: colors.text.tertiary },
+  historyLink: { paddingVertical: 4, paddingLeft: 12 },
+  historyLinkText: { ...type.bodyEmphasis, fontSize: 14, color: colors.accent.primaryText },
   finderArea: { flex: 1, justifyContent: 'center', gap: 18 },
   finder: {
     alignSelf: 'center',

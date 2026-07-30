@@ -6,7 +6,7 @@
  * looks its nutrition up through the gateway; every failure there degrades only
  * the card, because the labels themselves never needed the network.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -23,6 +23,7 @@ import type { Classification } from 'react-native-food-classifier';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useClassifier } from '../hooks/useClassifier';
 import { useNutrition } from '../hooks/useNutrition';
+import { addEntry } from '../lib/history';
 import { NutritionCard } from '../components/NutritionCard';
 import { Notice } from '../components/Notice';
 import {
@@ -94,6 +95,20 @@ export function ResultsScreen({ route }: Props) {
   // Re-runs whenever the selection changes, so tapping an alternative looks up
   // that food instead.
   const { state: nutrition, retry: retryNutrition } = useNutrition(selected?.label);
+
+  // Record the scan once a label is settled on, and again if the user picks a
+  // different one — addEntry replaces by photo rather than stacking duplicates.
+  // Deliberately not waiting for nutrition: the scan happened either way, and
+  // history must survive the backend being down.
+  useEffect(() => {
+    if (!selected) return;
+    addEntry({
+      imageUri,
+      label: selected.label,
+      confidence: selected.confidence,
+      kcalPer100g: nutrition.status === 'ready' ? nutrition.data.per100g.kcal : undefined,
+    });
+  }, [imageUri, selected, nutrition]);
 
   return (
     <View style={styles.screen}>
