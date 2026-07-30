@@ -2,11 +2,11 @@
 
 Point your camera at food, get labels from an on-device classifier, then nutrition facts from a gateway-fronted TypeScript backend.
 
-<!-- TODO(H5): 10–15 s demo GIF goes here. -->
+<p align="center">
+  <img src="docs/screenshots/foodsnap-demo.gif" width="300" alt="Snapping a pizza, picking the portion, and the diary totals updating" />
+</p>
 
-![The result screen on an Android emulator: ML Kit labels and nutrition facts](docs/screenshots/results-nutrition-android-emulator.png)
-
-*Android emulator. ML Kit labelled the photo on-device; the macros came from the nutrition service through the gateway. "Food", "Cuisine" and "Fast food" are dimmed because they are category words, not dishes — see the tradeoff below.*
+*Android emulator, unedited apart from playback speed: an empty diary, a photo classified on-device, the portion picked as "2 slices", and the day's totals landing at 681 / 2,200 kcal. "Food", "Cuisine" and "Fast food" are dimmed because they are category words, not dishes — see the tradeoff below.*
 
 ## Why this exists
 
@@ -14,7 +14,7 @@ I built this in 2026 to have a compact, honest example of an architecture I work
 
 It is a deliberately scoped demonstration project, not a product, and not something with years of history behind it. Where I chose the cheap path over the correct-at-scale path, the code says so in a comment.
 
-**Status:** working on Android and iOS. Photos are classified on-device — ML Kit on Android, Vision on iOS — nutrition comes from the containerized backend through the gateway, and the last 20 scans persist locally. Signed APKs ship from CI to GitHub Releases. [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) tracks every task and, for each one, what was actually verified rather than assumed.
+**Status:** working on Android and iOS. Photos are classified on-device — ML Kit on Android, Vision on iOS — nutrition comes from the containerized backend through the gateway, and portions are logged to a local diary with daily targets. Signed APKs ship from CI to GitHub Releases. [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) tracks every task and, for each one, what was actually verified rather than assumed — including the parts that are not.
 
 ## Architecture
 
@@ -52,11 +52,11 @@ Yarn (Berry) workspaces with `nodeLinker: node-modules` — React Native's tooli
 
 ```
 apps/mobile/              React Native app (TypeScript, New Architecture, Hermes)
-  src/screens/            Capture, Results, History (+ a dev token gallery)
+  src/screens/            Diary, Capture, Results, Portion, Search, Settings
   src/theme/              design tokens — code form of docs/DESIGN.md
-  src/hooks/              useClassifier — wraps the native module call
-  src/navigation/         native-stack, dark-only
-  src/lib/                label ranking and the MMKV-backed scan history
+  src/hooks/              useClassifier, useNutrition
+  src/navigation/         glass tab bar over a native stack, dark-only
+  src/lib/                label ranking, MMKV diary store, nutrition cache
   src/api/                typed gateway client
 packages/food-classifier/ TurboModule: TS spec + Kotlin (ML Kit) + Swift (Vision)
 packages/shared/          API contract types imported by the app and both services
