@@ -298,9 +298,9 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.askarpenko7.foodsnap;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.askarpenko7.foodsnap;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MZJS78V7NA;
+				DEVELOPMENT_TEAM = 5PZDUPSM9U;
 				PRODUCT_NAME = FoodSnap;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -329,9 +329,9 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.askarpenko7.foodsnap;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.askarpenko7.foodsnap;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MZJS78V7NA;
+				DEVELOPMENT_TEAM = 5PZDUPSM9U;
 				PRODUCT_NAME = FoodSnap;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
