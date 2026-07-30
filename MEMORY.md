@@ -8,9 +8,11 @@ Hard-won facts about this repo and this machine. They are here because each one 
 
 Phases 1, 2 and 3 are all complete, DoD included. **Next task is P4.1** — the optional design build-out (glass tab bar, Diary, portion editor, search, Settings).
 
-Docker is installed now (29.6.2, Compose v5.3.1) and the compose stack is verified end to end from the emulator. Two of the four Phase 2 DoD items pass; the other two (GitHub Release from a tag, CI green) are GitHub-side.
+The repo is live at https://github.com/askarpenko7/foodsnap with CI green and [v0.1.0](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) released as a signed APK. Docker, Terraform and the iOS simulator all work on this machine.
 
-Human-only items still open: **H1** (real-device run + screenshot), **H2** (create the public GitHub repo — CI cannot go green without a remote), **H3/H4** (keystore + 4 secrets, then tag `v0.1.0`).
+Human-only items still open: **H1** (real Android device run + swap the emulator screenshots), **H5** (demo GIF), **H6** (CV/LinkedIn). A real iPhone would also settle iOS label quality, which the Simulator cannot.
+
+**`apps/mobile/.env` is platform-specific and gitignored.** `GATEWAY_URL` must be `http://10.0.2.2:8080` for the Android emulator but `http://localhost:8080` for the iOS simulator — `10.0.2.2` is an Android-only host alias. It is currently set for **iOS**; switch it back before testing Android, and remember react-native-config bakes it in at build time, so a rebuild is required either way.
 
 ## Running the stack in Docker
 
