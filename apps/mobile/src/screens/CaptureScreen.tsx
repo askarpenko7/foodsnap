@@ -104,15 +104,17 @@ export function CaptureScreen() {
       <StatusBar barStyle="light-content" backgroundColor={colors.bg.deep} />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.topBar}>
-          <Text style={styles.brandMicro}>FOODSNAP</Text>
           <TouchableOpacity
-            style={styles.historyLink}
-            onPress={() => navigation.navigate('History')}
+            style={[styles.closeButton, glass.chip]}
+            onPress={() => navigation.goBack()}
             accessibilityRole="button"
-            accessibilityLabel="Open scan history"
+            accessibilityLabel="Close the camera"
           >
-            <Text style={styles.historyLinkText}>History</Text>
+            <Text style={styles.closeGlyph}>×</Text>
           </TouchableOpacity>
+          <Text style={styles.brandMicro}>FOODSNAP</Text>
+          {/* Balances the close button so the wordmark stays centred. */}
+          <View style={styles.closeButton} />
         </View>
 
         <View style={styles.finderArea}>
@@ -173,8 +175,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   brandMicro: { ...type.microLabel, color: colors.text.tertiary },
-  historyLink: { paddingVertical: 4, paddingLeft: 12 },
-  historyLinkText: { ...type.bodyEmphasis, fontSize: 14, color: colors.accent.primaryText },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.circle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeGlyph: { fontSize: 22, lineHeight: 24, color: colors.text.primary },
   finderArea: { flex: 1, justifyContent: 'center', gap: 18 },
   finder: {
     alignSelf: 'center',

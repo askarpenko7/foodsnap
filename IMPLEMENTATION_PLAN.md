@@ -41,9 +41,9 @@
 | Phase 1 — "it classifies on Android" | 15/15 | 0/1 | 2/2 | agent work done — H1 (real device + screenshot) open |
 | Phase 2 — "gateway, Docker, CI, released APK" | 14/14 | 3/3 | 4/4 | **complete** — released as v0.1.0 |
 | Phase 3 — "iOS parity + infra + shine" (optional) | 6/6 | 0/2 | 3/3 | **complete** |
-| Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
+| Phase 4 — design build-out (optional) | 1/6 | 0/0 | 0/3 | in progress |
 
-**Now:** nothing in progress · **Phases 1, 2 and 3 are all complete**, DoD included. **Next up:** P4.1 (glass tab bar) if the optional design build-out is wanted.
+**Now:** P4.2 · **Phases 1, 2 and 3 are all complete**, DoD included. **Next up:** P4.2 (Diary with daily targets).
 
 **Repo:** https://github.com/askarpenko7/foodsnap · CI green · [v0.1.0 released](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) with a signed APK.
 
@@ -304,11 +304,11 @@
 
 **Goal:** implement the rest of the design concept (`docs/DESIGN.md` §5) — Diary with daily targets, portion editing, search + manual logging, nutrition caching, Settings, tab-bar navigation. This phase extends the brief's scope; it must never regress the Phase 1–3 DoD, and the README/roadmap must stay honest about what's built.
 
-- [ ] **P4.1 — Floating glass tab bar**
+- [x] **P4.1 — Floating glass tab bar**
   Diary / Snap / Settings per `docs/DESIGN.md` (h78, r39, center 60px Snap button elevated −30px, glass.tabBar preset). Snap opens the capture flow modally; Diary becomes the home screen.
   **Verify:** navigation works from all three tabs; visual check against the concept.
 
-- [ ] **P4.2 — Diary screen with daily targets** *(depends: P3.3, P4.1)*
+- [~] **P4.2 — Diary screen with daily targets** *(depends: P3.3, P4.1)*
   Design screen 1: date header, kcal summary card (consumed / target, "left today", % mono), three macro target bars, "Logged today" rows (thumb · name · portion·time meta · kcal). Targets + entries in MMKV (extends the P3.3 store; HistoryScreen is absorbed by this screen). Entries come from "Add to diary" (P4.3).
   **Verify:** add entries → totals, %, and "left today" math correct; persists across restarts.
 
@@ -376,3 +376,4 @@
 | 2026-07-30 | Claude Code | P3.4 | `infra/terraform`: Artifact Registry + two Cloud Run services matching the compose topology, nutrition-api on internal-only ingress with `run.invoker` scoped to the gateway's service account, API keys pulled from Secret Manager rather than a variable, per-service accounts, startup probes, scaling caps, and a README that lists honestly what is missing for production | Installed Terraform 1.15.8 from the HashiCorp tap (it left homebrew-core when the licence changed). `terraform init -backend=false` + `terraform validate` → "The configuration is valid"; `terraform fmt -check` clean. Provider cache gitignored, lock file committed |
 | 2026-07-30 | Claude Code | P3.5, P3.6 | README brought to the Phase 3 reality: status covers both platforms, the Mermaid diagram's Vision edge is no longer dashed, the native-module section now explains both engines behind one contract and uses the real Vision-vs-ML-Kit outputs to justify the ranking logic, iOS run steps added, roadmap pruned of what now exists. Tests broadened to 82 across the repo (35 nutrition-api, 12 gateway, 35 mobile) | `yarn lint`, `yarn typecheck`, `yarn test` all green; the documented iOS sequence (`pod install` then build) verified to work — plain `yarn ios` fails until pods are reinstalled for the new native deps, which is why the README spells out both steps |
 | 2026-07-30 | Claude Code | P3.2 | Tapped through the iOS flow once the `xcode-select` fix was in. **Two real bugs, both only reachable this way.** (1) The matcher answered confident nonsense: fuse.js's bitap search matches a short query *inside* a longer key, so `xyzzy`→Cola 0.48, `sky`→Bacon 0.54, `outdoor`→Hot dog 0.57, `moon`→Lemon 0.75 — the app showed hot dog calories for a hallucinated label. Replaced with whole-string normalized Levenshtein (dependency dropped) and the threshold raised 0.45 → 0.7 after measuring both sides: real typos 0.83–1.00, junk below 0.7. (2) Vision failed on the Simulator with "Failed to create espresso context"; pinning to CPU makes it run but it still returns labels unrelated to the image, so the pin is now `#if targetEnvironment(simulator)` and devices keep the default, correct, faster path | 106 tests green. Simulator flow runs end to end and the nutrition card now correctly says "Not in the food database" for `outdoor` instead of inventing calories. Proof the Simulator is at fault and not the module: the identical binary on the identical file returns `pizza 85.3%` natively, `outdoor / night sky / moon` in the Simulator |
+| 2026-07-30 | OpenCode (kimi-k3) | P4.1 | Floating glass tab bar: `@react-navigation/bottom-tabs` 7.18.14 with a fully custom `GlassTabBar` (h78, r39, glass.tabBar degrade preset, 60px Snap button elevated −30px). Glyphs drawn with plain views — no icon library for three shapes. Navigation restructured: Diary is home, Snap opens Capture as a full-screen modal (glass × close per concept screen 3, replacing the History link), Results stays a push. Blur revisit decision: stay on the degrade path — it already matches the concept's borders/shadows; a native BlurView is polish, not a need. Placeholder Diary/Settings screens (filled by P4.2/P4.6); HistoryScreen file removed ahead of P4.2 absorbing it | Emulator: Snap → Capture modal with ×; Settings ↔ Diary tab switching with focus states; visual check against concept passed (screenshots reviewed). `tsc` + 35 Jest tests green |

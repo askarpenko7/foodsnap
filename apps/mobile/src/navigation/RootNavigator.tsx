@@ -1,18 +1,27 @@
 import React from 'react';
 import { DarkTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { CaptureScreen } from '../screens/CaptureScreen';
 import { ResultsScreen } from '../screens/ResultsScreen';
-import { HistoryScreen } from '../screens/HistoryScreen';
+import { DiaryScreen } from '../screens/DiaryScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { GlassTabBar } from './GlassTabBar';
 import { colors } from '../theme';
 
 export type RootStackParamList = {
+  Main: undefined;
   Capture: undefined;
   Results: { imageUri: string };
-  History: undefined;
+};
+
+export type MainTabParamList = {
+  Diary: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tabs = createBottomTabNavigator<MainTabParamList>();
 
 // The app is dark-only (docs/DESIGN.md) — align the navigation chrome so no
 // system-white surfaces ever flash between screens.
@@ -30,37 +39,41 @@ const foodSnapNavTheme: Theme = {
   fonts: DarkTheme.fonts,
 };
 
+/**
+ * Home is the Diary/Settings tab pair behind the floating glass tab bar
+ * (P4.1). Snap is not a tab — it opens the capture flow as a full-screen
+ * modal over whatever tab is active, per the design concept.
+ */
+function MainTabs() {
+  return (
+    <Tabs.Navigator
+      tabBar={(props) => <GlassTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    >
+      <Tabs.Screen name="Diary" component={DiaryScreen} />
+      <Tabs.Screen name="Settings" component={SettingsScreen} />
+    </Tabs.Navigator>
+  );
+}
+
 export function RootNavigator() {
   return (
     <NavigationContainer theme={foodSnapNavTheme}>
       <Stack.Navigator
         screenOptions={{
-          headerTintColor: colors.text.primary,
-          headerTitleStyle: { fontWeight: '700' },
+          headerShown: false,
           contentStyle: { backgroundColor: colors.bg.screen },
         }}
       >
+        <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen
           name="Capture"
           component={CaptureScreen}
-          options={{ headerShown: false }}
+          options={{ presentation: 'fullScreenModal' }}
         />
-        {/* Both screens are headerless: the design puts the photo full-bleed
-            under the status bar, with a glass "Retake" chip standing in for a
-            back button. */}
-        <Stack.Screen
-          name="Results"
-          component={ResultsScreen}
-          options={{ headerShown: false }}
-        />
-        {/* Headerless like the others: the screen draws the design's own large
-            title and back chevron. The concept's floating tab bar replaces this
-            push navigation in P4.1. */}
-        <Stack.Screen
-          name="History"
-          component={HistoryScreen}
-          options={{ headerShown: false }}
-        />
+        {/* Headerless: the design puts the photo full-bleed under the status
+            bar, with a glass "Retake" chip standing in for a back button. */}
+        <Stack.Screen name="Results" component={ResultsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
