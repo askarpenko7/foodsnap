@@ -14,7 +14,7 @@ The repo is live at https://github.com/askarpenko7/foodsnap with CI green and [v
 
 Human-only items still open: **H1** (real Android device run + swap the emulator screenshots), **H5** (demo GIF), **H6** (CV/LinkedIn). A real iPhone would also settle iOS label quality, which the Simulator cannot.
 
-**`apps/mobile/.env` is platform-specific and gitignored.** `GATEWAY_URL` must be `http://10.0.2.2:8080` for the Android emulator but `http://localhost:8080` for the iOS simulator — `10.0.2.2` is an Android-only host alias. It is currently set for **iOS**; switch it back before testing Android, and remember react-native-config bakes it in at build time, so a rebuild is required either way.
+**`apps/mobile/.env` is platform-specific and gitignored.** `GATEWAY_URL` must be `http://10.0.2.2:8080` for the Android emulator but `http://localhost:8080` for the iOS simulator — `10.0.2.2` is an Android-only host alias. It is currently set for **Android**; switch it before testing iOS, and remember react-native-config bakes it in at build time, so a rebuild is required either way.
 
 ## Running the stack in Docker
 
