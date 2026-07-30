@@ -119,9 +119,13 @@ export function PortionScreen({ route }: Props) {
       ...(imageUri === undefined ? {} : { imageUri }),
     });
     // Straight back to the tabs, past Results and the Capture modal — logging is
-    // finished, and the Diary reloads on focus. Navigating to a route already in
-    // the stack pops to it rather than pushing a second copy.
-    navigation.navigate('Main');
+    // finished, and the Diary reloads on focus.
+    //
+    // popTo, not navigate: React Navigation 7 changed `navigate` so it pushes a
+    // *new* copy of a screen already in the stack rather than returning to it.
+    // That pushed a second Diary on top of the modal stack, which is why it
+    // arrived as a sheet instead of as home.
+    navigation.popTo('Main');
   }, [name, grams, portion, imageUri, navigation]);
 
   return (

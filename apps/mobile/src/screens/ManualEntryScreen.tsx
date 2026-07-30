@@ -103,7 +103,9 @@ export function ManualEntryScreen() {
       carbs: parsed.carbs ?? 0,
       fat: parsed.fat ?? 0,
     });
-    navigation.navigate('Main');
+    // popTo rather than navigate — see the note in PortionScreen: in React
+    // Navigation 7 `navigate` pushes a second copy instead of returning.
+    navigation.popTo('Main');
   }, [canSave, name, parsed, navigation]);
 
   return (
