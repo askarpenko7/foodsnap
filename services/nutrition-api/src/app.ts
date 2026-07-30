@@ -52,6 +52,9 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
       per100g: result.food.per100g,
       match: { query, matchedOn: result.matchedOn, score: Number(result.score.toFixed(3)) },
     };
+    // Omitted rather than sent as [] when the food has no natural unit, so the
+    // client can tell "no presets" from "presets not loaded".
+    if (result.food.servings !== undefined) body.servings = result.food.servings;
     return reply.send(body);
   });
 

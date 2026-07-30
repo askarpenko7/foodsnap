@@ -18,7 +18,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import type { Classification } from 'react-native-food-classifier';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useClassifier } from '../hooks/useClassifier';
@@ -67,7 +70,7 @@ function RadioRow({
 }
 
 export function ResultsScreen({ route }: Props) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const { imageUri } = route.params;
   const { state, retry } = useClassifier(imageUri);
@@ -95,9 +98,22 @@ export function ResultsScreen({ route }: Props) {
   // that food instead.
   const { state: nutrition, retry: retryNutrition } = useNutrition(selected?.label);
 
-  // A scan is deliberately *not* logged anywhere yet: it only enters the diary
-  // when the user commits a portion via "Add to diary" (P4.3). Auto-recording
-  // every classification would fill daily totals with food that was never eaten.
+  // A scan is deliberately not logged on sight: it enters the diary only when
+  // the user commits a portion below. Auto-recording every classification would
+  // fill daily totals with food that was never eaten.
+  //
+  // The CTA needs real per-100 g values, so it appears only once the lookup has
+  // landed — there is nothing to scale a portion from otherwise.
+  const canLog = nutrition.status === 'ready';
+  const openPortion = useCallback(() => {
+    if (nutrition.status !== 'ready') return;
+    navigation.navigate('Portion', {
+      name: nutrition.data.name,
+      per100g: nutrition.data.per100g,
+      imageUri,
+      ...(nutrition.data.servings === undefined ? {} : { servings: nutrition.data.servings }),
+    });
+  }, [nutrition, imageUri, navigation]);
 
   return (
     <View style={styles.screen}>
@@ -184,6 +200,19 @@ export function ResultsScreen({ route }: Props) {
               />
             )}
           </ScrollView>
+        )}
+
+        {state.status === 'ready' && canLog && (
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+            <TouchableOpacity
+              style={styles.cta}
+              onPress={openPortion}
+              accessibilityRole="button"
+              accessibilityLabel="Choose a portion and add to the diary"
+            >
+              <Text style={styles.ctaText}>Add to diary</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
@@ -279,6 +308,21 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: colors.accent.primary,
   },
+  footer: {
+    paddingHorizontal: spacing.gutter,
+    paddingTop: 14,
+    backgroundColor: colors.surface.sheet,
+    borderTopWidth: 1,
+    borderTopColor: colors.line.hairline,
+  },
+  cta: {
+    height: 56,
+    borderRadius: radii.cta,
+    backgroundColor: colors.cta.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaText: { fontSize: 17, fontWeight: '700', color: colors.cta.text },
   radioLabel: { ...type.bodyEmphasis, color: colors.text.primary, flex: 1 },
   radioConfidence: { ...type.monoValue, color: colors.text.secondary },
 });

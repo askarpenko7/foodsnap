@@ -38,6 +38,24 @@ describe('nutrition-api routes', () => {
     expect(response.json<NutritionResponse>().name).toBe('Hot dog');
   });
 
+  it('returns portion presets for a food that has them', async () => {
+    const response = await app.inject({ method: 'GET', url: '/nutrition/pizza' });
+    const { servings } = response.json<NutritionResponse>();
+
+    // The concept's own chips for pizza.
+    expect(servings).toEqual([
+      { label: '1 slice', grams: 128 },
+      { label: '2 slices', grams: 256 },
+      { label: 'whole', grams: 768 },
+    ]);
+  });
+
+  it('omits servings entirely for a food with no natural unit', async () => {
+    // Spinach is weighed, not counted — there is no "1 spinach".
+    const response = await app.inject({ method: 'GET', url: '/nutrition/spinach' });
+    expect(response.json<NutritionResponse>().servings).toBeUndefined();
+  });
+
   it('404s with the shared error shape when nothing matches', async () => {
     const response = await app.inject({ method: 'GET', url: '/nutrition/asdfghjkl' });
     expect(response.statusCode).toBe(404);

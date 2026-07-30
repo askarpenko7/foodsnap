@@ -1840,6 +1840,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@foodsnap/shared@workspace:packages/shared"
   dependencies:
+    "@jest/globals": "npm:29.7.0"
+    "@types/jest": "npm:29.5.14"
+    jest: "npm:29.7.0"
+    ts-jest: "npm:29.4.12"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft

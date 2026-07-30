@@ -1,4 +1,4 @@
-import type { Food, Macros } from '@foodsnap/shared';
+import type { Food, Macros, Serving } from '@foodsnap/shared';
 import rawFoods from '../data/foods.json';
 
 /**
@@ -39,6 +39,36 @@ function parseMacros(value: unknown, where: string): Macros {
   return macros;
 }
 
+/** A portion nobody could eat is a data-entry slip, not a serving suggestion. */
+const MAX_SERVING_GRAMS = 2000;
+
+function parseServings(value: unknown, where: string): Serving[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new Error(`${where}: servings must be an array`);
+
+  const seen = new Set<string>();
+  return value.map((entry, index) => {
+    const at = `${where}: servings[${index}]`;
+    if (typeof entry !== 'object' || entry === null) throw new Error(`${at} must be an object`);
+    const { label, grams } = entry as Record<string, unknown>;
+
+    if (typeof label !== 'string' || label.trim() === '') {
+      throw new Error(`${at}: label must be a non-empty string`);
+    }
+    if (typeof grams !== 'number' || !Number.isFinite(grams) || grams <= 0) {
+      throw new Error(`${at} (${label}): grams must be a positive number, got ${String(grams)}`);
+    }
+    if (grams > MAX_SERVING_GRAMS) {
+      throw new Error(`${at} (${label}): ${grams} g is out of range`);
+    }
+    // Duplicate labels would render as two identical, indistinguishable chips.
+    if (seen.has(label)) throw new Error(`${at}: duplicate serving label "${label}"`);
+    seen.add(label);
+
+    return { label, grams };
+  });
+}
+
 export function parseFoods(input: unknown): Food[] {
   if (!Array.isArray(input)) throw new Error('foods.json must contain an array');
 
@@ -62,7 +92,15 @@ export function parseFoods(input: unknown): Food[] {
       seen.add(normalized);
     }
 
-    return { name, aliases: aliases as string[], per100g: parseMacros(per100g, `${where} (${name})`) };
+    const { servings } = entry as Record<string, unknown>;
+    const parsed: Food = {
+      name,
+      aliases: aliases as string[],
+      per100g: parseMacros(per100g, `${where} (${name})`),
+    };
+    const parsedServings = parseServings(servings, `${where} (${name})`);
+    if (parsedServings !== undefined) parsed.servings = parsedServings;
+    return parsed;
   });
 }
 

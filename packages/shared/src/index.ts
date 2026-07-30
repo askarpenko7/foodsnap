@@ -16,6 +16,17 @@ export interface Macros {
 }
 
 /** One entry of the bundled food database (`services/nutrition-api/data/foods.json`). */
+/**
+ * A portion people actually think in — "1 slice", "half an avocado" — rather
+ * than grams. The portion editor offers these as one-tap presets, because
+ * nobody weighs a slice of pizza.
+ */
+export interface Serving {
+  /** Short label for a chip, e.g. "1 slice". */
+  label: string;
+  grams: number;
+}
+
 export interface Food {
   /** Canonical display name, e.g. "Pizza". */
   name: string;
@@ -25,6 +36,11 @@ export interface Food {
    */
   aliases: string[];
   per100g: Macros;
+  /**
+   * Optional: plenty of foods have no natural unit (olive oil, sugar), and the
+   * editor always offers 100 g regardless.
+   */
+  servings?: Serving[];
 }
 
 /** How a query resolved, so the UI can admit it showed something adjacent. */
@@ -42,6 +58,24 @@ export interface NutritionResponse {
   name: string;
   per100g: Macros;
   match: MatchInfo;
+  /** Portion presets for this food. Absent when it has no natural unit. */
+  servings?: Serving[];
+}
+
+/**
+ * Scales per-100 g values to an actual portion. Lives in the contract because
+ * the app, and anything else that logs a portion, must agree on the arithmetic
+ * — a diary entry is stored as computed macros, so a discrepancy here would be
+ * baked into the user's history rather than corrected on the next read.
+ */
+export function scaleMacros(per100g: Macros, grams: number): Macros {
+  const factor = grams / 100;
+  return {
+    kcal: per100g.kcal * factor,
+    protein: per100g.protein * factor,
+    carbs: per100g.carbs * factor,
+    fat: per100g.fat * factor,
+  };
 }
 
 /** 200 body of `GET /health` on either service. */

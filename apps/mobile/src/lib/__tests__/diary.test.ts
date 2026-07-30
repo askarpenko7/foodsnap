@@ -71,6 +71,52 @@ describe('entries', () => {
   });
 });
 
+/**
+ * The path P4.3 restores: until the portion editor existed, nothing in the app
+ * called addEntry, so the diary could never fill. These pin the shape the
+ * editor writes.
+ */
+describe('entries logged from the portion editor', () => {
+  it('stores the computed macros for the portion, not per-100 g values', () => {
+    // Two slices of pizza: 256 g of a 266 kcal/100 g food.
+    addEntry(TODAY, {
+      name: 'Pizza',
+      grams: 256,
+      kcal: 680.96,
+      protein: 28.16,
+      carbs: 84.48,
+      fat: 25.6,
+      imageUri: 'file:///scan.jpg',
+    });
+
+    const [logged] = loadEntries(TODAY);
+    expect(logged?.grams).toBe(256);
+    expect(logged?.kcal).toBeCloseTo(680.96, 2);
+    expect(logged?.imageUri).toBe('file:///scan.jpg');
+  });
+
+  it('accepts an entry with no photo, for search and manual logs', () => {
+    addEntry(TODAY, entry('Salad', 180, 99));
+    expect(loadEntries(TODAY)[0]?.imageUri).toBeUndefined();
+  });
+
+  it('keeps every portion of the same food rather than replacing it', () => {
+    // Unlike the old scan history, eating pizza twice is two diary entries.
+    addEntry(TODAY, entry('Pizza', 128, 340));
+    addEntry(TODAY, entry('Pizza', 128, 340));
+
+    const entries = loadEntries(TODAY);
+    expect(entries).toHaveLength(2);
+    expect(totals(entries).kcal).toBe(680);
+  });
+
+  it('feeds straight into the day totals the summary card renders', () => {
+    addEntry(TODAY, entry('Pizza', 256, 681));
+    addEntry(TODAY, entry('Latte', 240, 132));
+    expect(Math.round(totals(loadEntries(TODAY)).kcal)).toBe(813);
+  });
+});
+
 describe('totals', () => {
   it('sums macros across entries', () => {
     addEntry(TODAY, entry('Pizza', 250, 665));

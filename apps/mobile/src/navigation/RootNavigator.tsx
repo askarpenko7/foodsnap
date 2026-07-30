@@ -2,8 +2,10 @@ import React from 'react';
 import { DarkTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { Macros, Serving } from '@foodsnap/shared';
 import { CaptureScreen } from '../screens/CaptureScreen';
 import { ResultsScreen } from '../screens/ResultsScreen';
+import { PortionScreen } from '../screens/PortionScreen';
 import { DiaryScreen } from '../screens/DiaryScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { GlassTabBar } from './GlassTabBar';
@@ -13,6 +15,13 @@ export type RootStackParamList = {
   Main: undefined;
   Capture: undefined;
   Results: { imageUri: string };
+  Portion: {
+    name: string;
+    per100g: Macros;
+    servings?: Serving[];
+    /** Carried through so the diary row can show the photo that was scanned. */
+    imageUri?: string;
+  };
 };
 
 export type MainTabParamList = {
@@ -74,6 +83,12 @@ export function RootNavigator() {
         {/* Headerless: the design puts the photo full-bleed under the status
             bar, with a glass "Retake" chip standing in for a back button. */}
         <Stack.Screen name="Results" component={ResultsScreen} />
+        {/* Sheet over Results: dismissing it leaves the scan untouched. */}
+        <Stack.Screen
+          name="Portion"
+          component={PortionScreen}
+          options={{ presentation: 'modal' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

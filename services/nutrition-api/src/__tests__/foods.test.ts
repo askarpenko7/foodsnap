@@ -77,6 +77,47 @@ describe('parseFoods', () => {
     ).toThrow(/macros sum to/);
   });
 
+  it('accepts a food with servings', () => {
+    const [food] = parseFoods([
+      { ...valid[0], servings: [{ label: '1 slice', grams: 128 }] },
+    ]);
+    expect(food?.servings).toEqual([{ label: '1 slice', grams: 128 }]);
+  });
+
+  it('leaves servings undefined when the food has no natural unit', () => {
+    expect(parseFoods(valid)[0]?.servings).toBeUndefined();
+  });
+
+  it('rejects servings that are not an array', () => {
+    expect(() => parseFoods([{ ...valid[0], servings: {} }])).toThrow(/servings must be an array/);
+  });
+
+  it('rejects a serving with a non-positive weight', () => {
+    expect(() =>
+      parseFoods([{ ...valid[0], servings: [{ label: '1 slice', grams: 0 }] }]),
+    ).toThrow(/grams must be a positive number/);
+  });
+
+  it('rejects a serving heavier than anyone could eat', () => {
+    expect(() =>
+      parseFoods([{ ...valid[0], servings: [{ label: 'silly', grams: 5000 }] }]),
+    ).toThrow(/out of range/);
+  });
+
+  it('rejects duplicate serving labels, which would render as identical chips', () => {
+    expect(() =>
+      parseFoods([
+        {
+          ...valid[0],
+          servings: [
+            { label: '1 slice', grams: 128 },
+            { label: '1 slice', grams: 130 },
+          ],
+        },
+      ]),
+    ).toThrow(/duplicate serving label/);
+  });
+
   it('rejects a duplicate key across entries', () => {
     expect(() => parseFoods([valid[0], { ...valid[0], name: 'Other' }])).toThrow(/duplicate key/);
   });
