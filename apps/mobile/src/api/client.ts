@@ -147,3 +147,12 @@ export async function searchFoods(query: string): Promise<FoodSearchResponse> {
   }
   return body;
 }
+
+/**
+ * Pings the gateway's health endpoint for the Settings dot. Resolves on 200 and
+ * throws otherwise — the caller only needs up-or-down, and /health is public so
+ * this works even with a wrong api key.
+ */
+export async function checkHealth(): Promise<void> {
+  await getJson('/health');
+}
