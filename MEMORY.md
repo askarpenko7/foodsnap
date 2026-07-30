@@ -6,7 +6,7 @@ Hard-won facts about this repo and this machine. They are here because each one 
 
 ## Where the project stands
 
-Phases 1 and 2 are complete: every agent task is done and verified by running it. **Next task is P3.1** (Swift/Vision).
+Phases 1 and 2 are complete. Phase 3 is 5/6 — only **P3.2** (tapping through the flow on the iOS simulator) is outstanding, and it is blocked on a password-gated `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`. **Next task is P4.1** (the design build-out) unless that fix lands first.
 
 Docker is installed now (29.6.2, Compose v5.3.1) and the compose stack is verified end to end from the emulator. Two of the four Phase 2 DoD items pass; the other two (GitHub Release from a tag, CI green) are GitHub-side.
 
@@ -84,11 +84,30 @@ Each of these cost a debugging cycle. None is discoverable by reading our code.
 - **hermesc under workspace hoisting.** RN 0.86 ships hermesc in its own `hermes-compiler` package, which the Gradle plugin resolves under `<react.root>/node_modules` — that is `apps/mobile`, while node_modules is hoisted. `app/build.gradle` sets `hermesCommand` explicitly, keeping `%OS-BIN%` so macOS and CI's linux64 both work. **Only release builds compile bytecode**, so `assembleDebug` passes while `assembleRelease` fails — always run a release build before trusting the release workflow.
 - **`react-native-config`**: `dotenv.gradle` is at `react-native-config/android/dotenv.gradle`, not the package root, and it resolves the env file as `$rootDir/../.env` (so `apps/mobile/.env`). Values are baked in at **build** time — changing `.env` needs a rebuild, not a reload.
 - **`apksigner` globs.** `"$ANDROID_HOME"/build-tools/*/apksigner` expands to *every* installed version, passing the extras as arguments; it then verifies nothing and still exits 0. Pick one: `find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1`.
-- **Jest + React Native ESM.** The RN preset does not transform `node_modules`, but react-navigation ships ESM, so `transformIgnorePatterns` must allow-list it (see `apps/mobile/jest.config.js`). Service suites are ESM too and need `NODE_OPTIONS=--experimental-vm-modules` plus a `moduleNameMapper` stripping `.js` from relative imports.
+- **Jest + React Native ESM.** The RN preset does not transform `node_modules`, but react-navigation ships ESM, so `transformIgnorePatterns` must cover it — the pattern now matches the whole `react-native*` / `@react-native*` / `@react-navigation*` family, so a new native dep does not silently break the suite. Service suites are ESM too and need `NODE_OPTIONS=--experimental-vm-modules` plus a `moduleNameMapper` stripping `.js` from relative imports.
+- **MMKV 4 is not MMKV 2/3.** Instances come from `createMMKV()`, `MMKV` is a type only, `delete()` is `remove()`, and it needs `react-native-nitro-modules` as a peer. Under Jest it substitutes an in-memory store by itself — but Nitro calls `TurboModuleRegistry.getEnforcing` at *import* time and throws first, so `jest.setup.js` stubs `react-native-nitro-modules`.
+- **CocoaPods needs a UTF-8 locale.** In a non-interactive shell `pod install` dies with `Unicode Normalization not appropriate for ASCII-8BIT`. Prefix with `export LANG=en_US.UTF-8`.
+- **Adding a native dep means `pod install` again.** `yarn ios` on its own failed after MMKV/Nitro landed; `bundle exec pod install` then building works. The README documents both steps for that reason.
+- **Terraform is not in homebrew-core** (licence change). Install from the HashiCorp tap: `brew install hashicorp/tap/terraform`.
+
+## Verifying iOS
+
+The Claude simulator tooling — panel, taps, screenshots — refuses to start until someone runs `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`. That needs a password, so an agent cannot fix it; say so rather than silently falling back.
+
+Everything except tapping can still be verified headlessly with `xcrun simctl` (`boot`, `install`, `launch`, `io … screenshot`, `addmedia`). Two gotchas: there are several devices literally named "iPhone 16" across runtimes, so `-destination` must use a **UDID**, not a name; and screenshots come back at 3x, so divide pixel coordinates by 3 to get logical points.
+
+**The best trick for the Swift side:** compile the shipped source into a throwaway harness and run it on real photos —
+
+```bash
+xcrun swiftc -O packages/food-classifier/ios/FoodClassifierImpl.swift main.swift -o vision-check
+```
+
+That exercises the real classifier with no simulator, no bridge and no UI, and it is what caught the `utensil` ranking bug. Top-level code only works in a file named `main.swift`.
 
 ## Things about the product you cannot infer from the code
 
-- **ML Kit's labeler is generic, and this shapes the UX.** A margherita pizza returns `Food 96%`, `Pizza 95%`, `Cuisine 90%`, `Cake 78%`. The category words rank *above* the dish, so `ResultsScreen`'s `GENERIC_LABELS` stop list demotes them out of the default selection and dims them. Without it, Phase 2 would look up nutrition for `"food"`. Wrong-but-specific guesses like "Cake" are deliberately left bright — the user corrects those, not a heuristic.
+- **Both classifiers are generic, and this shapes the UX.** ML Kit sees a margherita pizza as `Food 96%`, `Pizza 95%`, `Cuisine 90%`, `Cake 78%`. Vision is worse: on a salad it returns `tableware 49%`, `utensil 49%`, `bowl 49%` *above* `food` and `salad` — it ranks the objects over the meal. The `GENERIC_LABELS` stop list in `src/lib/labels.ts` demotes both kinds out of the default selection and dims them; without it the app looks up the nutrition of "food" or of a utensil. **Add to that list from observed output, not imagination**, and pin the real output as a test fixture. Wrong-but-specific guesses like "Cake" stay bright — the user corrects those, not a heuristic.
+- **An `adb install -r` that prints only "Performing Streamed Install" has failed.** A debug APK will not install over the release-signed build from a tag (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`); uninstall first. The symptom is the app running stale JS and ignoring Metro, which looks exactly like a bundler cache problem and is not one.
 - **Classification must never require the network.** It is the architectural point of the project: only the nutrition lookup crosses the wire. Any change that makes labels depend on the backend is wrong.
 - **The app is dark-only** and RN has no `backdrop-filter`, so the design's glass surfaces use the documented "graceful degrade" (solid fills at ~92% alpha with the same borders/shadows). Revisit a native BlurView at P4.1, not before.
 - **Accent colors are generated, not hand-picked.** `tokens.generated.ts` comes from OKLCH sources via `scripts/generate-tokens.mjs` (culori). Edit the script, re-run `yarn workspace foodsnap-mobile tokens:generate`, and commit the output — never hand-tune the hex.
