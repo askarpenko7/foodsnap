@@ -17,6 +17,19 @@ const REAL_PIZZA_OUTPUT: Classification[] = [
   { label: 'Fast food', confidence: 0.78 },
 ];
 
+/**
+ * What Vision actually returned for a salad photo. Kept as its own fixture
+ * because the two engines fail differently: Vision ranks the *objects* in the
+ * photo above the food, so the object words carry more weight here.
+ */
+const REAL_VISION_SALAD_OUTPUT: Classification[] = [
+  { label: 'tableware', confidence: 0.494 },
+  { label: 'utensil', confidence: 0.494 },
+  { label: 'bowl', confidence: 0.494 },
+  { label: 'food', confidence: 0.462 },
+  { label: 'salad', confidence: 0.462 },
+];
+
 describe('isGeneric', () => {
   it('flags category words that are useless to look up', () => {
     for (const label of ['Food', 'cuisine', 'Fast food', 'Tableware', 'dish']) {
@@ -41,6 +54,13 @@ describe('defaultSelectionIndex', () => {
   it('skips the generic top hit and selects the first real food', () => {
     expect(defaultSelectionIndex(REAL_PIZZA_OUTPUT)).toBe(1);
     expect(REAL_PIZZA_OUTPUT[defaultSelectionIndex(REAL_PIZZA_OUTPUT)]?.label).toBe('Pizza');
+  });
+
+  // Vision ranks tableware/utensil/bowl above the food itself, so without the
+  // object words in the stop list the app looked up the nutrition of a utensil.
+  it('skips the objects Vision ranks above the food', () => {
+    const index = defaultSelectionIndex(REAL_VISION_SALAD_OUTPUT);
+    expect(REAL_VISION_SALAD_OUTPUT[index]?.label).toBe('salad');
   });
 
   it('keeps the top hit when it is already specific', () => {

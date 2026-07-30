@@ -17,10 +17,20 @@ import type { Classification } from 'react-native-food-classifier';
 /** Rows below this confidence render dimmed. */
 export const DIM_BELOW = 0.3;
 
+/**
+ * Evidence-driven, not guessed: every entry here has been observed coming out of
+ * ML Kit or Vision on a real photo, or is an immediate sibling of one.
+ *
+ * Vision is the harsher of the two — on a salad photo it ranks
+ * `tableware / utensil / bowl` *above* `food` and `salad`, so without the
+ * object words the app would look up the nutrition of a utensil.
+ */
 const GENERIC_LABELS = new Set([
+  // Category words for food itself
   'food',
   'cuisine',
   'dish',
+  'meal',
   'recipe',
   'ingredient',
   'produce',
@@ -30,11 +40,24 @@ const GENERIC_LABELS = new Set([
   'finger food',
   'baked goods',
   'dessert',
+  // Objects that show up in any photo of a plate
   'tableware',
+  'dishware',
+  'kitchenware',
+  'cookware',
+  'utensil',
+  'kitchen utensil',
+  'cutlery',
   'plate',
   'bowl',
-  'cutlery',
-  'kitchen utensil',
+  'cup',
+  'mug',
+  'glass',
+  'fork',
+  'knife',
+  'spoon',
+  'table',
+  'dining table',
 ]);
 
 /** True for category words that describe a kind of food rather than a food. */
