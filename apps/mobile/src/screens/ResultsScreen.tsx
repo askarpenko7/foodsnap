@@ -104,9 +104,9 @@ export function ResultsScreen({ route }: Props) {
   //
   // The CTA needs real per-100 g values, so it appears only once the lookup has
   // landed — there is nothing to scale a portion from otherwise.
-  const canLog = nutrition.status === 'ready';
+  const canLog = nutrition.status === 'ready' || nutrition.status === 'cached';
   const openPortion = useCallback(() => {
-    if (nutrition.status !== 'ready') return;
+    if (nutrition.status !== 'ready' && nutrition.status !== 'cached') return;
     navigation.navigate('Portion', {
       name: nutrition.data.name,
       per100g: nutrition.data.per100g,

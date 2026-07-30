@@ -76,7 +76,7 @@ export function NutritionCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.micro}>NUTRITION · PER 100 G</Text>
-        {state.status === 'ready' && state.data.match.score < 1 && (
+        {(state.status === 'ready' || state.status === 'cached') && state.data.match.score < 1 && (
           <Text style={styles.microFaint}>MATCHED {state.data.match.matchedOn.toUpperCase()}</Text>
         )}
       </View>
@@ -88,7 +88,7 @@ export function NutritionCard({
         </View>
       )}
 
-      {state.status === 'ready' && (
+      {(state.status === 'ready' || state.status === 'cached') && (
         <>
           <View style={styles.kcalRow}>
             <Text style={styles.kcal}>{Math.round(state.data.per100g.kcal)}</Text>
@@ -96,6 +96,17 @@ export function NutritionCard({
           </View>
           <Macros per100g={state.data.per100g} />
         </>
+      )}
+
+      {/* Concept screen 6: real numbers, plainly labelled as not fresh. */}
+      {state.status === 'cached' && (
+        <Notice
+          tone={colors.macro.carbs}
+          title="Numbers came from cache"
+          body={`The gateway didn't answer, so this is the nutrition stored for ${
+            food ?? 'this food'
+          } on ${new Date(state.cachedAt).toLocaleDateString()}. Labels never needed the network.`}
+        />
       )}
 
       {state.status === 'unknownFood' && (
