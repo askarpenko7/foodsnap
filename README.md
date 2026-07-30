@@ -90,13 +90,27 @@ React Native's **codegen** reads that spec at build time and generates the nativ
 
 **Threading.** `classifyImage` must not block the UI thread. ML Kit's `Task` API already runs inference on its own executor; the success and failure listeners fire back on the main thread, which is a safe place to resolve or reject a TurboModule promise. Callers get a normal JS `Promise`, and rejections carry stable codes (`E_FILE_NOT_FOUND`, `E_CLASSIFICATION_FAILED`) so the UI can branch on the failure rather than parse a message.
 
-**Two engines, one contract.** Android uses ML Kit's image labeler in Kotlin; iOS uses the Vision framework's `VNClassifyImageRequest` in Swift, bridged to the ObjC codegen spec (`create-react-native-library` no longer ships a Swift TurboModule template). Both return the top 5 above a 0.1 confidence floor, both reject with the same two codes, and both keep inference off the UI thread. The JavaScript cannot tell which one answered — that is what the shared spec buys.
+**Two engines, one contract.** Android uses ML Kit's image labeler in Kotlin; iOS uses the Vision framework's `VNClassifyImageRequest` in Swift, bridged to the ObjC codegen spec (`create-react-native-library` no longer ships a Swift TurboModule template). Both reject with the same two codes and both keep inference off the UI thread. The JavaScript cannot tell which one answered — that is what the shared spec buys.
 
 **The tradeoff, stated plainly.** Neither engine is a food model; both are *generic* image classifiers. ML Kit sees a margherita pizza as `Food 96%`, `Pizza 95%`, `Cuisine 90%`, `Cake 78%`. Vision is worse in an interesting way: on a salad it returns `tableware 49%`, `utensil 49%`, `bowl 49%` *above* `food` and `salad` — it ranks the objects in the photo over the thing you are trying to log.
 
-So the app ranks client-side. A stop list of category words and tableware demotes them out of the default selection and dims them in the list, which is why a naive "take the top hit" would have looked up the nutrition of a utensil. A wrong-but-specific guess like "Cake" is left bright and selectable, because the user is better placed to correct that than a heuristic is. The list is [evidence-driven](apps/mobile/src/lib/labels.ts) — every entry was observed coming out of one of the two engines, and the real outputs are pinned as test fixtures.
+### How much of that is the model, and how much was my window
 
-Bundling a food-specific TFLite or CoreML model would delete this whole problem, and it is the single biggest quality improvement available here.
+Both engines started at "top 5, confidence ≥ 0.1", which is the obvious choice and is right for ML Kit. On iOS it was quietly destroying the answer, and the interesting part is how that stayed invisible.
+
+The Simulator's Vision returns labels unrelated to the image, so iOS label quality cannot be judged there at all — the flow looks fine while the output is noise. What settled it was compiling the shipped Swift into a throwaway CLI and running it on real photos with no bridge, no UI and no simulator:
+
+```bash
+xcrun swiftc -O packages/food-classifier/ios/FoodClassifierImpl.swift main.swift -o vision-check
+```
+
+Vision returns **~1300 labels** and spreads confidence thinly across all of them. On a real salad the top five were `tableware 49%`, `utensil 49%`, `bowl 49%`, `food 46%`, `salad 46%` — while lettuce (4.7%), tomato (4.1%) and cucumber (2.2%) sat below the 0.1 floor and were discarded **in native code**, before JavaScript ever saw them. A plate of pierogi returned no food label in its top five at all. The window was throwing away the answer and the app was faithfully ranking what survived.
+
+So iOS now hands over 20 candidates from a 0.01 floor, and since confidence alone clearly cannot choose, [`labels.ts`](apps/mobile/src/lib/labels.ts) sorts into tiers — a nameable food, then a category word, then an object — ordering by confidence only *within* a tier. That is what lets a 4% "lettuce" beat a 49% "tableware". A wrong-but-specific guess like "Cake" stays bright and selectable, because the user is better placed to correct that than a heuristic is. Both sets are evidence-driven: every entry was observed coming out of one of the two engines, and real device outputs are pinned as test fixtures.
+
+Android keeps the narrower window deliberately. ML Kit applies its own 0.5 threshold internally and returns a handful of well-separated labels, so widening it there would only re-admit what ML Kit already rejected — and with no Android hardware to test on, changing it for symmetry alone would be a guess.
+
+**Where it lands.** Ranking fixed the failure mode where the app offered you a utensil; it cannot make a generic classifier good at food. On a real iPhone the right answer is now usually *in* the list, often selected, at single-digit confidence. Bundling a food-specific TFLite or CoreML model is the one change that would fix the accuracy itself, and it is the top of the roadmap.
 
 ## The backend
 
@@ -237,9 +251,9 @@ Play Protect may show a "scan this app?" prompt for an app it has not seen befor
 
 ## Roadmap
 
-- **Food-specific model** (TFLite on Android, CoreML on iOS) to replace the generic labelers — the biggest accuracy win available, and it would delete the stop list.
-- **Diary and portions** — daily targets, portion editing, search and manual entry, all designed in [`docs/DESIGN.md`](docs/DESIGN.md) and not yet built.
-- **Live camera frames** with `react-native-vision-camera` instead of one still per snap.
+- **Food-specific model** (TFLite on Android, CoreML on iOS) to replace the generic labelers — the biggest accuracy win available, and the one that would make the tiered ranking unnecessary rather than just effective.
+- **Continuous frame classification** — the camera preview is live, but a photo is still classified one still at a time; `react-native-vision-camera`'s frame processors would label what the viewfinder sees.
+- **Android device verification** — every Android claim here rests on an emulator, because there is no Android hardware to hand.
 - **TestFlight lane** for iOS, to match the APK story on Android.
 - **History sync** behind the gateway, once there is an account to sync to.
 
