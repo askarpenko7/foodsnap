@@ -48,9 +48,9 @@
 **Repo:** https://github.com/askarpenko7/foodsnap · CI green · [v0.1.0 released](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) with a signed APK.
 
 **Blocked on human:** nothing is blocking further agent work.
-- **H1** — run on a real Android device and swap the emulator screenshots in the README.
-- **A real iPhone** would settle iOS label quality, which the Simulator cannot (see P3.2).
-- **H5/H6** — demo GIF for the README hero, and adding the repo to the CV/LinkedIn.
+- **H1 is not possible as written** — no Android device (iPhones only). Emulator evidence stands, honestly labelled.
+- **An iPhone run** is the valuable substitute: it is the only way to judge iOS label quality, which the Simulator gets wrong (P3.2). Needs a free Apple developer account and a signing team on the Xcode target.
+- **H5/H6** — demo GIF for the README hero, and the CV/LinkedIn entry.
 
 ---
 
@@ -152,8 +152,9 @@
   Section order per brief §9: name + one-liner + demo GIF placeholder; "Why this exists" (honest, 2–3 sentences); architecture diagram placeholder; monorepo tour; native-modules explainer; running locally; CI/CD + APK install (placeholder until Phase 2); roadmap. Mention the design system (`docs/DESIGN.md`) in the tour.
   **Verify:** all §9 sections present in order; honesty rule respected.
 
-- [ ] **H1 — *(human)* Device run + screenshot**
+- [!] **H1 — *(human)* Device run + screenshot**
   Run Phase 1 result on a real Android device/emulator; commit a screenshot for the README.
+  **NOT POSSIBLE (2026-07-30):** Alexander has no Android device — only iPhones. The emulator run is the strongest evidence available for Android and is already committed; the README screenshots are labelled "Android emulator" and stay that way, which is honest rather than a gap to hide. **The useful substitute is an iPhone run**, which would also settle the one open iOS question (Simulator label quality — see P3.2). That needs a free Apple developer account, the device plugged in, and a signing team set on the Xcode target; an agent cannot drive a physical device.
 
 ### Phase 1 — Definition of Done *(brief §10, verbatim)*
 
