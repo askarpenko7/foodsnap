@@ -60,6 +60,32 @@ public final class FoodClassifierImpl: NSObject {
     // TurboModule promise from a background thread is safe.
     DispatchQueue.global(qos: .userInitiated).async {
       let request = VNClassifyImageRequest()
+
+      // Simulator only. There is no Neural Engine there, and Vision's default
+      // device selection does not fall back on its own — it fails outright with
+      // "Failed to create espresso context". Pinning to the CPU at least lets
+      // the flow run while developing.
+      //
+      // Be warned that it runs, but does not work: the Simulator's classifier
+      // returns labels unrelated to the image (a pizza comes back as
+      // "outdoor / night sky / moon"). The same binary on the same file outside
+      // the Simulator returns "pizza 85.3%", so this is an emulation gap, not a
+      // bug here — iOS label quality can only be judged on a real device.
+      //
+      // Devices keep Vision's default selection, which is both correct and
+      // faster than anything we would pin.
+      #if targetEnvironment(simulator)
+        if #available(iOS 17.0, *) {
+          if let devices = try? request.supportedComputeStageDevices[.main],
+             let cpu = devices.first(where: { device in
+               if case .cpu = device { return true }
+               return false
+             }) {
+            request.setComputeDevice(cpu, for: .main)
+          }
+        }
+      #endif
+
       let handler = VNImageRequestHandler(url: url, options: [:])
 
       do {

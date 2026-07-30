@@ -26,8 +26,13 @@ export const config = {
   logLevel: process.env.LOG_LEVEL ?? 'info',
   /**
    * Minimum match quality (1 = exact) below which a lookup 404s rather than
-   * returning a confidently wrong answer. Tuned in `matcher.test.ts`: high
-   * enough to reject "asdfghjkl", low enough to accept "granny smith".
+   * returning a confidently wrong answer.
+   *
+   * 0.7 is measured, not guessed. Real misspellings score 0.83–1.00
+   * ("banna"→Banana 0.833 is the worst observed), while the junk that
+   * classifiers actually emit — "outdoor", "sky", "moon", "utensil" — all fall
+   * below 0.7 against every one of the ~470 keys. That leaves a wide dead band
+   * in between, which is where a threshold wants to sit.
    */
-  matchThreshold: floatFromEnv('MATCH_THRESHOLD', 0.45),
+  matchThreshold: floatFromEnv('MATCH_THRESHOLD', 0.7),
 } as const;

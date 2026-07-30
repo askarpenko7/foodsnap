@@ -1,9 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
 import type { Food } from '@foodsnap/shared';
-import { createMatcher, normalize } from '../matcher.js';
+import { createMatcher, normalize, similarity } from '../matcher.js';
 import { foods } from '../foods.js';
 
-const THRESHOLD = 0.45;
+const THRESHOLD = 0.7;
 
 describe('normalize', () => {
   it('ignores case, padding and edge punctuation', () => {
@@ -18,6 +18,27 @@ describe('normalize', () => {
 
   it('keeps letters and digits inside the string', () => {
     expect(normalize('Pizza, pepperoni')).toBe('pizza, pepperoni');
+  });
+});
+
+describe('similarity', () => {
+  it('is 1 for identical strings and 0 for nothing in common', () => {
+    expect(similarity('pizza', 'pizza')).toBe(1);
+    expect(similarity('abc', 'xyz')).toBe(0);
+  });
+
+  it('scores whole strings, so a short query does not match inside a long key', () => {
+    // The precise failure that fuse.js had: "sky" is a substring-ish match for
+    // "streaky bacon" but nothing like the same word.
+    expect(similarity('sky', 'streaky bacon')).toBeLessThan(0.5);
+  });
+
+  it('is symmetric', () => {
+    expect(similarity('banna', 'banana')).toBeCloseTo(similarity('banana', 'banna'));
+  });
+
+  it('treats two empty strings as identical', () => {
+    expect(similarity('', '')).toBe(1);
   });
 });
 
@@ -63,6 +84,43 @@ describe('createMatcher against the bundled database', () => {
     expect(matcher.match('qqqqzzzzxxxx')).toBeNull();
   });
 
+  /**
+   * Regression guard for the reason fuse.js was dropped. Its bitap search
+   * matched a short query *inside* a longer key, so these all came back as
+   * confident food: "xyzzy"→Cola 0.48, "sky"→Bacon 0.54, "outdoor"→Hot dog 0.57,
+   * "moon"→Lemon 0.75. Every one of them is something a classifier really
+   * emitted or could emit, and answering with calories would be worse than
+   * answering with nothing.
+   */
+  it.each([
+    'outdoor',
+    'sky',
+    'night sky',
+    'moon',
+    'celestial body',
+    'xyzzy',
+    'utensil',
+    'tableware',
+    'plant',
+    'person',
+    'indoor',
+    'vehicle',
+    'furniture',
+  ])('rejects the non-food label %p rather than inventing a match', (label) => {
+    expect(matcher.match(label)).toBeNull();
+  });
+
+  it.each([
+    ['chiken breast', 'Chicken breast'],
+    ['spagetti', 'Pasta'],
+    ['tomatos', 'Tomato'],
+    ['banna', 'Banana'],
+    ['avacado', 'Avocado'],
+    ['brocoli', 'Broccoli'],
+  ])('still accepts the real misspelling %p', (typo, expected) => {
+    expect(matcher.match(typo)?.food.name).toBe(expected);
+  });
+
   it('treats blank input as a miss', () => {
     expect(matcher.match('')).toBeNull();
     expect(matcher.match('   ')).toBeNull();
@@ -91,7 +149,12 @@ describe('createMatcher with a controlled database', () => {
   });
 
   it('a stricter threshold rejects what a lenient one accepts', () => {
-    expect(createMatcher(tiny, 0.3).match('pzza')?.food.name).toBe('Pizza');
+    expect(createMatcher(tiny, 0.7).match('pzza')?.food.name).toBe('Pizza');
     expect(createMatcher(tiny, 0.99).match('pzza')).toBeNull();
+  });
+
+  it('picks the closest key when several are within threshold', () => {
+    const matcher = createMatcher(tiny, 0.5);
+    expect(matcher.match('salads')?.food.name).toBe('Salad');
   });
 });

@@ -102,7 +102,9 @@ Bundling a food-specific TFLite or CoreML model would delete this whole problem,
 
 Two Fastify services in TypeScript, and the split between them is the point.
 
-**`nutrition-api`** is internal and never published. It holds a hand-written database of 139 foods with per-100 g macros, and resolves a label to an entry by trying an exact match on the name or any alias first, then fuzzy matching with fuse.js. Aliases are chosen for what a classifier actually emits, so `granny smith` resolves to Apple and `hot dog` to Hot dog. Below a score threshold it returns 404 rather than a confidently wrong number — a nutrition app that invents calories is worse than one that admits it does not know. The database is validated at boot, so a typo in the JSON stops the process with a precise message instead of surfacing as `NaN` kcal in the UI.
+**`nutrition-api`** is internal and never published. It holds a hand-written database of 139 foods with per-100 g macros, and resolves a label by trying an exact match on the name or any alias first, then normalized Levenshtein over all ~470 keys. Aliases are chosen for what a classifier actually emits, so `granny smith` resolves to Apple and `hot dog` to Hot dog, and misspellings like `spagetti` still land on Pasta.
+
+fuse.js was the first choice and had to go: its bitap search matches a short query *inside* a longer key, which on short food names produced confident nonsense — `xyzzy` scored 0.48 against "fizzy drink", `sky` 0.54 against "streaky bacon", `outdoor` 0.57 against "hotdog". Whole-string edit distance has no such failure mode. The 0.7 threshold is measured rather than guessed: real misspellings score 0.83–1.00, the junk classifiers emit scores below 0.7 against every key, and the gap between is where a threshold belongs. Below it the service returns 404 — a nutrition app that invents calories is worse than one that admits it does not know. The database is validated at boot, so a typo in the JSON stops the process with a precise message instead of surfacing as `NaN` kcal in the UI.
 
 **`gateway`** is the only public entry point, and it is a real gateway rather than a passthrough:
 

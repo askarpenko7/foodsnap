@@ -75,7 +75,7 @@
 | Glass/blur approach (`@react-native-community/blur` vs translucent fallback) | **Graceful degrade** (solid fills ≈ `rgba(30,34,44,.92)` + same borders/shadows); blur lib 4.4.1 noted for P4.1 revisit | 2026-07-29 | DESIGN.md §4 explicitly offers the degrade path; avoids a native dep for MVP. Decision: degrade. |
 | IBM Plex Mono font files (OFL) | google/fonts repo `ofl/ibmplexmono` @ main (OFL 1.1) | 2026-07-29 | github.com/google/fonts raw TTFs (400/500/600) + OFL.txt bundled; GitHub API was rate-limited, files fetched directly |
 | culori (dev-only) | 4.0.2 | 2026-07-29 | npm `latest`; OKLCH → hex token generation script (P1.6) |
-| fuse.js (or Levenshtein impl) | fuse.js 7.5.0 | 2026-07-29 | chosen over hand-rolled Levenshtein: alias scoring + threshold tuning for free |
+| Fuzzy matcher | **normalized Levenshtein**, hand-rolled (no dep) | 2026-07-30 | fuse.js 7.5.0 was chosen first and **reverted on 2026-07-30**: its bitap search matches a short query inside a longer key, so `xyzzy`→Cola 0.48, `sky`→Bacon 0.54, `outdoor`→Hot dog 0.57. Whole-string edit distance over ~470 keys is microseconds and has no such failure mode. Threshold raised 0.45 → 0.7, measured against real typos (0.83–1.00) vs classifier junk (<0.7) |
 | Jest + RN preset / ts-jest | Jest 29.7.x + `@react-native/jest-preset` 0.86.2; ts-jest 29.4.12 (services) | 2026-07-29 | RN community template 0.86.2 pins `jest ^29.6.3`; preset 0.86.2 deps are jest-29 libs — stay on 29 everywhere for consistency |
 | tsup vs tsc (service builds) | tsup 8.5.1 | 2026-07-29 | chosen: single-file ESM builds + watch mode, no tsconfig emit gymnastics |
 

@@ -36,7 +36,7 @@ variable "rate_limit_max" {
 variable "match_threshold" {
   description = "Minimum fuzzy-match quality (0..1) before a lookup 404s."
   type        = number
-  default     = 0.45
+  default     = 0.7
 
   validation {
     condition     = var.match_threshold > 0 && var.match_threshold <= 1
