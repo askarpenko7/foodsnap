@@ -40,14 +40,17 @@
 |---|---|---|---|---|
 | Phase 1 — "it classifies on Android" | 15/15 | 0/1 | 2/2 | agent work done — H1 (real device + screenshot) open |
 | Phase 2 — "gateway, Docker, CI, released APK" | 14/14 | 3/3 | 4/4 | **complete** — released as v0.1.0 |
-| Phase 3 — "iOS parity + infra + shine" (optional) | 0/6 | 0/2 | 0/3 | not started |
+| Phase 3 — "iOS parity + infra + shine" (optional) | 5/6 | 0/2 | 2/3 | P3.2 needs a password-gated Xcode fix to drive the simulator UI |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** P3.1 (Swift/Vision) in progress · **Phases 1 and 2 are complete**, DoD included.
+**Now:** nothing in progress · **Phases 1 and 2 complete**; Phase 3 is 5/6 with only the iOS tap-through outstanding. **Next up:** P4.1 (glass tab bar) if the design build-out is wanted.
 
 **Repo:** https://github.com/askarpenko7/foodsnap · CI green · [v0.1.0 released](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) with a signed APK.
 
-**Blocked on human:** only **H1** — run on a real device and swap the emulator screenshots in the README for real ones. Nothing else is waiting on Alexander.
+**Blocked on human:**
+- **`sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`** — unblocks driving the iOS simulator UI, the last piece of P3.2.
+- **H1** — run on a real Android device and swap the emulator screenshots in the README.
+- **H5/H6** — demo GIF for the README hero, and adding the repo to the CV/LinkedIn.
 
 ---
 
@@ -255,27 +258,28 @@
 
 ## Phase 3 — "iOS parity + infra + shine" *(optional)*
 
-- [ ] **P3.1 — Swift / Vision implementation**
+- [x] **P3.1 — Swift / Vision implementation**
   Replace the P1.12 stub: `VNClassifyImageRequest` (built-in classifier — no model download, no key). Load image from file URI, run on a background queue, map `VNClassificationObservation` → `Classification`. Same contract: top 5, filter < 0.1, coded errors. Same MVP-tradeoff comment.
   **Verify:** classification works in the iOS simulator.
 
-- [ ] **P3.2 — Full flow on iOS** *(depends: P3.1)*
+- [~] **P3.2 — Full flow on iOS** *(depends: P3.1)*
   Capture (or gallery) → Results → labels → nutrition card, on the iOS simulator.
   **Verify:** manual simulator flow end-to-end.
+  **PARTIAL (2026-07-30):** everything short of the tap-through is verified — the app builds, installs and launches on the iPhone 16 simulator, renders Capture correctly, and loads the Vision TurboModule plus MMKV/Nitro with no crash. Classification itself is proven by compiling `FoodClassifierImpl.swift` into a harness and running it on real photos. What is *not* verified is driving the UI, because the simulator-control tooling refuses to start until someone runs `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` — a password-gated fix an agent cannot apply. After that, tap through Library → photo → Results and confirm labels and nutrition, exactly as was done on Android.
 
-- [ ] **P3.3 — HistoryScreen + MMKV**
+- [x] **P3.3 — HistoryScreen + MMKV**
   Last 20 scans persisted locally with `react-native-mmkv`: thumbnail, top label, timestamp. Registered in navigation. Styled as the design's diary-lite list rows (`docs/DESIGN.md` §6) — no targets/summary card (that's P4.2, which absorbs this screen).
   **Verify:** scans appear; kill + relaunch app → history intact.
 
-- [ ] **P3.4 — Terraform (validate-only)**
+- [x] **P3.4 — Terraform (validate-only)**
   `infra/terraform`: Artifact Registry + two Cloud Run services (gateway public, nutrition-api internal ingress), env vars wired, minimal variables + README. Applying is optional and must not block anything (brief §8).
   **Verify:** `terraform validate` passes.
 
-- [ ] **P3.5 — README polish**
+- [x] **P3.5 — README polish**
   Mermaid architecture diagram (app → TurboModule → ML Kit/Vision; app → gateway → nutrition-api); final monorepo tour; native-modules section that teaches (TurboModules, codegen, threading); roadmap (food-specific CoreML/TFLite model, vision-camera live frames, History sync, iOS TestFlight lane).
   **Verify:** Mermaid renders on GitHub; sections match brief §9.
 
-- [ ] **P3.6 — Broader tests**
+- [x] **P3.6 — Broader tests**
   Extend coverage where thin (history persistence logic, iOS-path app logic with module mocked, matcher edge cases).
   **Verify:** `yarn test` green.
 
@@ -287,9 +291,12 @@
 
 ### Phase 3 — Definition of Done *(brief §10, verbatim)*
 
-- [ ] Same flow works on iOS.
-- [ ] History persists across restarts.
-- [ ] `terraform validate` passes.
+- [~] Same flow works on iOS.
+      *Vision classification, the build, launch and rendering are all verified; the interactive tap-through is not — see P3.2.*
+- [x] History persists across restarts.
+      *Emulator: scanned a photo, force-stopped the process, relaunched — the entry is still there with thumbnail, `TODAY 2:14 AM · 95%` and 266 kcal.*
+- [x] `terraform validate` passes.
+      *Terraform 1.15.8: `init -backend=false` then `validate` → "The configuration is valid", and `fmt -check` is clean.*
 
 ---
 
@@ -364,3 +371,7 @@
 | 2026-07-30 | Claude Code | Phase 2 DoD | Two of four items now pass. The compose DoD item was re-verified properly: emulator → gateway container → nutrition-api container → Pizza 266 kcal / 11 g protein, with one gateway request id (`gw-472efdf6…`) traced into the internal service's own logs. The remaining two items (GitHub Release from a tag, CI green) are GitHub-side and blocked on H2–H4 | See the P2.8/P2.9 row; screenshot in `docs/screenshots/` |
 | 2026-07-30 | Claude Code | H2 (assisted), CI green | Pushed to https://github.com/askarpenko7/foodsnap. Before pushing, rewrote all 18 commits from the placeholder `noreply@mail.com` to the GitHub noreply address `9066318+askarpenko7@users.noreply.github.com`, so they link to Alexander's profile and contribution graph — worth catching pre-push, since afterwards it needs a force-push. Also found that the machine's SSH key authenticates as a *different* account (`alexander-karpenko-at-fooda`), so HTTPS was used, where Git Credential Manager already held the `askarpenko7` credential. **The first CI run failed**: `actions/setup-node`'s `cache: yarn` shells out to `yarn` to find the cache folder, but Corepack was enabled in the *next* step, so yarn did not exist yet. Nothing local could have caught it — yarn is on PATH here. Fixed by installing Node, enabling Corepack, then re-running setup-node for the cache; `release-android.yml` had the identical ordering and was fixed too | Tree hash identical before/after the rewrite (metadata only, 18 commits both sides). [Run 30498818827](https://github.com/askarpenko7/foodsnap/actions/runs/30498818827): checkout, setup-node, Corepack, setup-node, install, typecheck, lint, test — all green. GitHub confirms the latest commit is linked to user `askarpenko7` |
 | 2026-07-30 | Claude Code | H3, H4 (verification), Phase 2 DoD | Alexander generated the release keystore and added the five repository secrets, then tagged `v0.1.0`. The release workflow passed every step first time — including `Verify the APK is signed with the release key`. Verified the published artifact independently rather than trusting the run: downloaded `foodsnap-0.1.0.apk` from the Release, `apksigner verify` passes, signer is `CN=Alexander Karpenko, OU=eve, O=eve, L=Barcelona, ST=Barcelona, C=ES` (the real key, not the debug fallback), `versionName='0.1.0'` derived from the tag. Installed it on the emulator and launched it with Metro stopped: runs from the bundled JS, no crash. Installing it *over* the debug build is refused with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` — correct, and the exact failure mode the signing guard exists to keep out of a release. **Phase 2 is complete, 4/4 DoD** | [Release v0.1.0](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) · [run 30499856454](https://github.com/askarpenko7/foodsnap/actions/runs/30499856454) · screenshot `docs/screenshots/` |
+| 2026-07-30 | Claude Code | P3.1, P3.2 (partial) | Vision implementation in Swift (`VNClassifyImageRequest`), bridged to the ObjC codegen spec via the CocoaPods-generated `FoodClassifier-Swift.h` since create-react-native-library 0.63 dropped its Swift template. Same contract as Kotlin: top 5, `< 0.1` filtered, same two error codes, background queue. Vision identifiers are slugs (`hot_dog`) so underscores are stripped before they reach the lookup. Also aligned the iOS bundle id with Android — it was still `org.reactjs.native.example.FoodSnap`. **Bug found:** compiling the shipped Swift into a harness showed Vision ranks `tableware / utensil / bowl` *above* `food` and `salad` on a salad photo, and `utensil` was missing from the app's stop list — the default selection would have looked up the nutrition of a utensil. Stop list is now evidence-driven from both engines, with the real Vision output pinned as a fixture | Harness on real photos: pizza → `pizza 85.5%`, both bare-path and `file://` forms work, missing file → `E_FILE_NOT_FOUND`, non-image → `E_CLASSIFICATION_FAILED`. `xcodebuild` succeeds and the app launches on the iPhone 16 simulator rendering Capture correctly. Tap-through **not** verified — the simulator-control tooling is gated behind a `sudo xcode-select` the agent cannot run |
+| 2026-07-30 | Claude Code | P3.3 | `HistoryScreen` + MMKV store: last 20 scans with thumbnail, label, time, confidence and kcal, styled as the design's diary list. Recording does not wait for nutrition (the scan happened regardless), re-scanning a photo replaces its entry instead of stacking duplicates, and unreadable entries are dropped rather than thrown so bad data costs history, not the screen. **MMKV 4 is a different API** — `createMMKV()` not `new MMKV()`, `MMKV` is a type only, `delete` is `remove`, and it needs `react-native-nitro-modules`, whose import calls `TurboModuleRegistry.getEnforcing` at load time and so needs a Jest stub. Broadened `transformIgnorePatterns` to the whole react-native family rather than keep extending an allow-list that only fails when a new dep lands | Emulator: scan → History shows "Pizza · TODAY 2:14 AM · 95% · 266"; force-stop the process, relaunch, entry still there. 11 new tests run against MMKV's own in-memory Jest store. Note: an `adb install -r` of the debug APK had silently failed against the release-signed build from v0.1.0 — the stale UI that produced cost a debugging cycle |
+| 2026-07-30 | Claude Code | P3.4 | `infra/terraform`: Artifact Registry + two Cloud Run services matching the compose topology, nutrition-api on internal-only ingress with `run.invoker` scoped to the gateway's service account, API keys pulled from Secret Manager rather than a variable, per-service accounts, startup probes, scaling caps, and a README that lists honestly what is missing for production | Installed Terraform 1.15.8 from the HashiCorp tap (it left homebrew-core when the licence changed). `terraform init -backend=false` + `terraform validate` → "The configuration is valid"; `terraform fmt -check` clean. Provider cache gitignored, lock file committed |
+| 2026-07-30 | Claude Code | P3.5, P3.6 | README brought to the Phase 3 reality: status covers both platforms, the Mermaid diagram's Vision edge is no longer dashed, the native-module section now explains both engines behind one contract and uses the real Vision-vs-ML-Kit outputs to justify the ranking logic, iOS run steps added, roadmap pruned of what now exists. Tests broadened to 82 across the repo (35 nutrition-api, 12 gateway, 35 mobile) | `yarn lint`, `yarn typecheck`, `yarn test` all green; the documented iOS sequence (`pod install` then build) verified to work — plain `yarn ios` fails until pods are reinstalled for the new native deps, which is why the README spells out both steps |

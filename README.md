@@ -14,7 +14,7 @@ I built this in 2026 to have a compact, honest example of an architecture I work
 
 It is a deliberately scoped demonstration project, not a product, and not something with years of history behind it. Where I chose the cheap path over the correct-at-scale path, the code says so in a comment.
 
-**Status:** the Android app classifies photos on-device and fetches nutrition from the containerized backend through the gateway. Phase 3 — iOS/Vision parity, on-device history, Terraform — is next. [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) tracks every task and, for each one, what was actually verified rather than assumed.
+**Status:** working on Android and iOS. Photos are classified on-device — ML Kit on Android, Vision on iOS — nutrition comes from the containerized backend through the gateway, and the last 20 scans persist locally. Signed APKs ship from CI to GitHub Releases. [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) tracks every task and, for each one, what was actually verified rather than assumed.
 
 ## Architecture
 
@@ -27,7 +27,7 @@ flowchart LR
         vision["Vision VNClassifyImageRequest<br/>on-device, Swift"]
         app -->|"classifyImage(uri)"| tm
         tm --> mlkit
-        tm -.->|"Phase 3"| vision
+        tm --> vision
     end
 
     subgraph backend["Backend"]
@@ -42,7 +42,7 @@ flowchart LR
     shared -.- api
 ```
 
-Solid arrows exist today; the dashed one to Vision is Phase 3, and the dashed lines to `packages/shared` are compile-time only — it is types, not a runtime dependency.
+The dashed lines to `packages/shared` are compile-time only — it is types, not a runtime dependency. Everything else exists today.
 
 The split matters: **classification never touches the network**, so the app is useful offline and there is no per-request inference cost. Only the nutrition lookup crosses the wire, and it goes through a gateway that owns auth and rate limiting rather than letting the app talk to the data service directly.
 
@@ -52,17 +52,17 @@ Yarn (Berry) workspaces with `nodeLinker: node-modules` — React Native's tooli
 
 ```
 apps/mobile/              React Native app (TypeScript, New Architecture, Hermes)
-  src/screens/            CaptureScreen, ResultsScreen (+ a dev token gallery)
+  src/screens/            Capture, Results, History (+ a dev token gallery)
   src/theme/              design tokens — code form of docs/DESIGN.md
   src/hooks/              useClassifier — wraps the native module call
   src/navigation/         native-stack, dark-only
-  src/lib/                label ranking — the generic-label stop list, tested
+  src/lib/                label ranking and the MMKV-backed scan history
   src/api/                typed gateway client
-packages/food-classifier/ TurboModule: TS spec + Kotlin (ML Kit) + iOS stub
+packages/food-classifier/ TurboModule: TS spec + Kotlin (ML Kit) + Swift (Vision)
 packages/shared/          API contract types imported by the app and both services
 services/gateway/         Fastify API gateway — the only public entry point
 services/nutrition-api/   Fastify nutrition lookup, internal only
-infra/                    docker-compose.yml + .env.example  (Terraform: Phase 3)
+infra/                    docker-compose.yml + Terraform for Cloud Run
 docs/DESIGN.md            visual source of truth: tokens, components, screens
 ```
 
@@ -90,7 +90,13 @@ React Native's **codegen** reads that spec at build time and generates the nativ
 
 **Threading.** `classifyImage` must not block the UI thread. ML Kit's `Task` API already runs inference on its own executor; the success and failure listeners fire back on the main thread, which is a safe place to resolve or reject a TurboModule promise. Callers get a normal JS `Promise`, and rejections carry stable codes (`E_FILE_NOT_FOUND`, `E_CLASSIFICATION_FAILED`) so the UI can branch on the failure rather than parse a message.
 
-**The tradeoff, stated plainly.** ML Kit's default labeler is a *generic* image classifier, not a food model. A photo of a margherita pizza comes back as `Food 96%`, `Pizza 95%`, `Cuisine 90%`, `Cake 78%`. Two consequences the app handles client-side: the top hit is often a category word that would be useless to look up ("food"), so a stop list demotes those and dims them in the list; and a wrong-but-specific guess like "Cake" stays visible, because the user is better placed to correct it than a heuristic is. Bundling a food-specific TFLite or CoreML model would remove the whole problem and is on the roadmap — it is the single biggest quality improvement available here.
+**Two engines, one contract.** Android uses ML Kit's image labeler in Kotlin; iOS uses the Vision framework's `VNClassifyImageRequest` in Swift, bridged to the ObjC codegen spec (`create-react-native-library` no longer ships a Swift TurboModule template). Both return the top 5 above a 0.1 confidence floor, both reject with the same two codes, and both keep inference off the UI thread. The JavaScript cannot tell which one answered — that is what the shared spec buys.
+
+**The tradeoff, stated plainly.** Neither engine is a food model; both are *generic* image classifiers. ML Kit sees a margherita pizza as `Food 96%`, `Pizza 95%`, `Cuisine 90%`, `Cake 78%`. Vision is worse in an interesting way: on a salad it returns `tableware 49%`, `utensil 49%`, `bowl 49%` *above* `food` and `salad` — it ranks the objects in the photo over the thing you are trying to log.
+
+So the app ranks client-side. A stop list of category words and tableware demotes them out of the default selection and dims them in the list, which is why a naive "take the top hit" would have looked up the nutrition of a utensil. A wrong-but-specific guess like "Cake" is left bright and selectable, because the user is better placed to correct that than a heuristic is. The list is [evidence-driven](apps/mobile/src/lib/labels.ts) — every entry was observed coming out of one of the two engines, and the real outputs are pinned as test fixtures.
+
+Bundling a food-specific TFLite or CoreML model would delete this whole problem, and it is the single biggest quality improvement available here.
 
 ## The backend
 
@@ -134,6 +140,18 @@ yarn workspace foodsnap-mobile android
 ```
 
 That builds the debug APK, installs it, and starts Metro. Snap a photo — or tap **Library** and pick one — and the Results screen shows real on-device labels. The nutrition card will say "backend offline": correct for Phase 1, since there is no backend yet.
+
+**Run it on iOS**
+
+```bash
+cd apps/mobile/ios && bundle exec pod install
+```
+
+```bash
+yarn workspace foodsnap-mobile ios
+```
+
+The Vision classifier works on the simulator — no device needed, since it runs on the CPU rather than the Neural Engine.
 
 **Run the backend**
 
@@ -217,10 +235,10 @@ Play Protect may show a "scan this app?" prompt for an app it has not seen befor
 
 ## Roadmap
 
-- **Food-specific model** (TFLite on Android, CoreML on iOS) to replace the generic labeler — the biggest accuracy win available.
-- **iOS parity** via the Vision framework, plus a TestFlight lane.
+- **Food-specific model** (TFLite on Android, CoreML on iOS) to replace the generic labelers — the biggest accuracy win available, and it would delete the stop list.
+- **Diary and portions** — daily targets, portion editing, search and manual entry, all designed in [`docs/DESIGN.md`](docs/DESIGN.md) and not yet built.
 - **Live camera frames** with `react-native-vision-camera` instead of one still per snap.
-- **Diary and portions** — daily targets, portion editing, manual entry, on-device history; all designed in [`docs/DESIGN.md`](docs/DESIGN.md).
+- **TestFlight lane** for iOS, to match the APK story on Android.
 - **History sync** behind the gateway, once there is an account to sync to.
 
 ## License
