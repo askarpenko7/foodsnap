@@ -58,3 +58,12 @@ coverage/
 
 # Service builds
 dist/
+
+# Terraform — the provider cache is 114 MB and machine-specific; the lock file
+# IS committed so everyone resolves the same provider versions.
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
