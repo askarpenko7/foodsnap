@@ -40,16 +40,16 @@
 |---|---|---|---|---|
 | Phase 1 — "it classifies on Android" | 15/15 | 0/1 | 2/2 | agent work done — H1 (real device + screenshot) open |
 | Phase 2 — "gateway, Docker, CI, released APK" | 14/14 | 3/3 | 4/4 | **complete** — released as v0.1.0 |
-| Phase 3 — "iOS parity + infra + shine" (optional) | 5/6 | 0/2 | 2/3 | P3.2 needs a password-gated Xcode fix to drive the simulator UI |
+| Phase 3 — "iOS parity + infra + shine" (optional) | 6/6 | 0/2 | 3/3 | **complete** |
 | Phase 4 — design build-out (optional) | 0/6 | 0/0 | 0/3 | not started |
 
-**Now:** nothing in progress · **Phases 1 and 2 complete**; Phase 3 is 5/6 with only the iOS tap-through outstanding. **Next up:** P4.1 (glass tab bar) if the design build-out is wanted.
+**Now:** nothing in progress · **Phases 1, 2 and 3 are all complete**, DoD included. **Next up:** P4.1 (glass tab bar) if the optional design build-out is wanted.
 
 **Repo:** https://github.com/askarpenko7/foodsnap · CI green · [v0.1.0 released](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) with a signed APK.
 
-**Blocked on human:**
-- **`sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`** — unblocks driving the iOS simulator UI, the last piece of P3.2.
+**Blocked on human:** nothing is blocking further agent work.
 - **H1** — run on a real Android device and swap the emulator screenshots in the README.
+- **A real iPhone** would settle iOS label quality, which the Simulator cannot (see P3.2).
 - **H5/H6** — demo GIF for the README hero, and adding the repo to the CV/LinkedIn.
 
 ---
@@ -262,10 +262,10 @@
   Replace the P1.12 stub: `VNClassifyImageRequest` (built-in classifier — no model download, no key). Load image from file URI, run on a background queue, map `VNClassificationObservation` → `Classification`. Same contract: top 5, filter < 0.1, coded errors. Same MVP-tradeoff comment.
   **Verify:** classification works in the iOS simulator.
 
-- [~] **P3.2 — Full flow on iOS** *(depends: P3.1)*
+- [x] **P3.2 — Full flow on iOS** *(depends: P3.1)*
   Capture (or gallery) → Results → labels → nutrition card, on the iOS simulator.
   **Verify:** manual simulator flow end-to-end.
-  **PARTIAL (2026-07-30):** everything short of the tap-through is verified — the app builds, installs and launches on the iPhone 16 simulator, renders Capture correctly, and loads the Vision TurboModule plus MMKV/Nitro with no crash. Classification itself is proven by compiling `FoodClassifierImpl.swift` into a harness and running it on real photos. What is *not* verified is driving the UI, because the simulator-control tooling refuses to start until someone runs `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` — a password-gated fix an agent cannot apply. After that, tap through Library → photo → Results and confirm labels and nutrition, exactly as was done on Android.
+  *Verified 2026-07-30 after Alexander ran the `xcode-select` fix. Tapped through on the iPhone 16 simulator: Capture → Library → picker → photo → Results renders the sheet, the classifier runs, and the nutrition card completes a real round-trip to the gateway. **Caveat, and it is the honest one:** the Simulator's Vision returns labels unrelated to the image (a pizza comes back as "outdoor / night sky / moon"), while the same binary on the same file outside the Simulator returns "pizza 85.3%". So the flow, the bridge, the threading and the error handling are all proven on iOS; the *label quality* can only be judged on real hardware. Two bugs were found doing this — see the Work Log.*
 
 - [x] **P3.3 — HistoryScreen + MMKV**
   Last 20 scans persisted locally with `react-native-mmkv`: thumbnail, top label, timestamp. Registered in navigation. Styled as the design's diary-lite list rows (`docs/DESIGN.md` §6) — no targets/summary card (that's P4.2, which absorbs this screen).
@@ -291,8 +291,8 @@
 
 ### Phase 3 — Definition of Done *(brief §10, verbatim)*
 
-- [~] Same flow works on iOS.
-      *Vision classification, the build, launch and rendering are all verified; the interactive tap-through is not — see P3.2.*
+- [x] Same flow works on iOS.
+      *Tapped through on the simulator end to end. Label quality there is unreliable (a Simulator limitation, proven by running the identical binary natively) — the flow itself is verified.*
 - [x] History persists across restarts.
       *Emulator: scanned a photo, force-stopped the process, relaunched — the entry is still there with thumbnail, `TODAY 2:14 AM · 95%` and 266 kcal.*
 - [x] `terraform validate` passes.
@@ -375,3 +375,4 @@
 | 2026-07-30 | Claude Code | P3.3 | `HistoryScreen` + MMKV store: last 20 scans with thumbnail, label, time, confidence and kcal, styled as the design's diary list. Recording does not wait for nutrition (the scan happened regardless), re-scanning a photo replaces its entry instead of stacking duplicates, and unreadable entries are dropped rather than thrown so bad data costs history, not the screen. **MMKV 4 is a different API** — `createMMKV()` not `new MMKV()`, `MMKV` is a type only, `delete` is `remove`, and it needs `react-native-nitro-modules`, whose import calls `TurboModuleRegistry.getEnforcing` at load time and so needs a Jest stub. Broadened `transformIgnorePatterns` to the whole react-native family rather than keep extending an allow-list that only fails when a new dep lands | Emulator: scan → History shows "Pizza · TODAY 2:14 AM · 95% · 266"; force-stop the process, relaunch, entry still there. 11 new tests run against MMKV's own in-memory Jest store. Note: an `adb install -r` of the debug APK had silently failed against the release-signed build from v0.1.0 — the stale UI that produced cost a debugging cycle |
 | 2026-07-30 | Claude Code | P3.4 | `infra/terraform`: Artifact Registry + two Cloud Run services matching the compose topology, nutrition-api on internal-only ingress with `run.invoker` scoped to the gateway's service account, API keys pulled from Secret Manager rather than a variable, per-service accounts, startup probes, scaling caps, and a README that lists honestly what is missing for production | Installed Terraform 1.15.8 from the HashiCorp tap (it left homebrew-core when the licence changed). `terraform init -backend=false` + `terraform validate` → "The configuration is valid"; `terraform fmt -check` clean. Provider cache gitignored, lock file committed |
 | 2026-07-30 | Claude Code | P3.5, P3.6 | README brought to the Phase 3 reality: status covers both platforms, the Mermaid diagram's Vision edge is no longer dashed, the native-module section now explains both engines behind one contract and uses the real Vision-vs-ML-Kit outputs to justify the ranking logic, iOS run steps added, roadmap pruned of what now exists. Tests broadened to 82 across the repo (35 nutrition-api, 12 gateway, 35 mobile) | `yarn lint`, `yarn typecheck`, `yarn test` all green; the documented iOS sequence (`pod install` then build) verified to work — plain `yarn ios` fails until pods are reinstalled for the new native deps, which is why the README spells out both steps |
+| 2026-07-30 | Claude Code | P3.2 | Tapped through the iOS flow once the `xcode-select` fix was in. **Two real bugs, both only reachable this way.** (1) The matcher answered confident nonsense: fuse.js's bitap search matches a short query *inside* a longer key, so `xyzzy`→Cola 0.48, `sky`→Bacon 0.54, `outdoor`→Hot dog 0.57, `moon`→Lemon 0.75 — the app showed hot dog calories for a hallucinated label. Replaced with whole-string normalized Levenshtein (dependency dropped) and the threshold raised 0.45 → 0.7 after measuring both sides: real typos 0.83–1.00, junk below 0.7. (2) Vision failed on the Simulator with "Failed to create espresso context"; pinning to CPU makes it run but it still returns labels unrelated to the image, so the pin is now `#if targetEnvironment(simulator)` and devices keep the default, correct, faster path | 106 tests green. Simulator flow runs end to end and the nutrition card now correctly says "Not in the food database" for `outdoor` instead of inventing calories. Proof the Simulator is at fault and not the module: the identical binary on the identical file returns `pizza 85.3%` natively, `outdoor / night sky / moon` in the Simulator |

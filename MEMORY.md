@@ -6,7 +6,7 @@ Hard-won facts about this repo and this machine. They are here because each one 
 
 ## Where the project stands
 
-Phases 1 and 2 are complete. Phase 3 is 5/6 — only **P3.2** (tapping through the flow on the iOS simulator) is outstanding, and it is blocked on a password-gated `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`. **Next task is P4.1** (the design build-out) unless that fix lands first.
+Phases 1, 2 and 3 are all complete, DoD included. **Next task is P4.1** — the optional design build-out (glass tab bar, Diary, portion editor, search, Settings).
 
 Docker is installed now (29.6.2, Compose v5.3.1) and the compose stack is verified end to end from the emulator. Two of the four Phase 2 DoD items pass; the other two (GitHub Release from a tag, CI green) are GitHub-side.
 
@@ -92,7 +92,9 @@ Each of these cost a debugging cycle. None is discoverable by reading our code.
 
 ## Verifying iOS
 
-The Claude simulator tooling — panel, taps, screenshots — refuses to start until someone runs `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`. That needs a password, so an agent cannot fix it; say so rather than silently falling back.
+The Claude simulator tooling needs `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` — **already run on this machine**, so taps and the live panel work. If it regresses, that command needs a password and an agent cannot run it; say so rather than silently falling back.
+
+**The Simulator's Vision classifier is not trustworthy.** It first fails with "Failed to create espresso context" (hence the `#if targetEnvironment(simulator)` CPU pin in `FoodClassifierImpl.swift`), and even pinned it returns labels unrelated to the image — a pizza comes back as `outdoor / night sky / moon`. The identical binary on the identical file returns `pizza 85.3%` natively. **Never judge iOS label quality from the Simulator**; use the harness below, or a real device.
 
 Everything except tapping can still be verified headlessly with `xcrun simctl` (`boot`, `install`, `launch`, `io … screenshot`, `addmedia`). Two gotchas: there are several devices literally named "iPhone 16" across runtimes, so `-destination` must use a **UDID**, not a name; and screenshots come back at 3x, so divide pixel coordinates by 3 to get logical points.
 
