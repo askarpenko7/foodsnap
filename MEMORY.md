@@ -84,6 +84,12 @@ adb exec-out screencap -p > shot.png
 
 Two food photos (pizza, salad) are already in the emulator's gallery. The pizza is the better test — it is what the design concept uses.
 
+## Things only a real device catches
+
+- **iOS purpose strings are load-bearing.** Without `NSCameraUsageDescription`, iOS *terminates* the process the moment the camera is touched — no permission alert, just a crash that looks like an app bug. The Simulator has no camera, so this survived every simulator run and only appeared on a physical iPhone. `NSPhotoLibraryUsageDescription` is needed for the Library path too. Both live in `apps/mobile/ios/FoodSnap/Info.plist`.
+- **Android permissions do not imply iOS ones.** The Android manifest had `CAMERA` from P1.8, which made the feature look done on that side while iOS had nothing.
+- `devicectl device process launch` sometimes fails once right after an install; retrying immediately works.
+
 ## Library traps already paid for
 
 Each of these cost a debugging cycle. None is discoverable by reading our code.
