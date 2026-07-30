@@ -15,7 +15,6 @@ export interface Macros {
   fat: number;
 }
 
-/** One entry of the bundled food database (`services/nutrition-api/data/foods.json`). */
 /**
  * A portion people actually think in — "1 slice", "half an avocado" — rather
  * than grams. The portion editor offers these as one-tap presets, because
@@ -27,6 +26,7 @@ export interface Serving {
   grams: number;
 }
 
+/** One entry of the bundled food database (`services/nutrition-api/data/foods.json`). */
 export interface Food {
   /** Canonical display name, e.g. "Pizza". */
   name: string;
@@ -76,6 +76,22 @@ export function scaleMacros(per100g: Macros, grams: number): Macros {
     carbs: per100g.carbs * factor,
     fat: per100g.fat * factor,
   };
+}
+
+/** One row of `GET /api/v1/foods?q=` — enough to render a search result. */
+export interface FoodSearchResult {
+  name: string;
+  per100g: Macros;
+  servings?: Serving[];
+}
+
+/** 200 body of `GET /api/v1/foods?q=`. */
+export interface FoodSearchResponse {
+  query: string;
+  /** Best first. Empty when nothing is close enough. */
+  results: FoodSearchResult[];
+  /** How many foods the database holds, for the "N OF 139 FOODS" micro-label. */
+  total: number;
 }
 
 /** 200 body of `GET /health` on either service. */
@@ -131,4 +147,9 @@ export const API_BASE_PATH = '/api/v1';
  */
 export function nutritionPath(food: string): string {
   return `${API_BASE_PATH}/nutrition/${encodeURIComponent(food)}`;
+}
+
+/** Public path for food search. Same single-definition rule as nutritionPath. */
+export function foodSearchPath(query: string): string {
+  return `${API_BASE_PATH}/foods?q=${encodeURIComponent(query)}`;
 }

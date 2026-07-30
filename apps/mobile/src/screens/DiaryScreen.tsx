@@ -8,7 +8,9 @@
 import React, { useCallback, useState } from 'react';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import {
   DEFAULT_TARGETS,
   dayKey,
@@ -82,6 +84,7 @@ function EntryRow({ entry }: { entry: DiaryEntry }) {
 }
 
 export function DiaryScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const [day, setDay] = useState(dayKey);
   // Start empty and load on focus — the MMKV store is deliberately touched
@@ -187,6 +190,16 @@ export function DiaryScreen() {
               </View>
             </View>
 
+            <TouchableOpacity
+              style={styles.searchField}
+              onPress={() => navigation.navigate('Search')}
+              accessibilityRole="button"
+              accessibilityLabel="Search foods, or add one by hand"
+            >
+              <Text style={styles.searchText}>Search foods, or add by hand</Text>
+              <Text style={styles.searchPlus}>+</Text>
+            </TouchableOpacity>
+
             <Text style={styles.loggedMicro}>
               LOGGED {dayLabel(day)} · {entries.length}{' '}
               {entries.length === 1 ? 'ENTRY' : 'ENTRIES'}
@@ -256,6 +269,19 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: 6, paddingVertical: 40, paddingHorizontal: 32 },
   emptyTitle: { ...type.heading, color: colors.text.primary },
   emptyBody: { ...type.caption, color: colors.text.secondary, textAlign: 'center' },
+  searchField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: spacing.gutter,
+    marginTop: 14,
+    height: 52,
+    borderRadius: radii.card,
+    backgroundColor: colors.surface.input,
+    paddingHorizontal: 18,
+  },
+  searchText: { ...type.body, color: colors.text.secondary },
+  searchPlus: { fontSize: 20, color: colors.text.secondary },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -74,4 +74,11 @@ export const upstreams: UpstreamConfig[] = [
     target: process.env.NUTRITION_API_URL ?? 'http://nutrition-api:3001',
     rewritePrefix: '/nutrition',
   },
+  // Food search on the same upstream. Adding it was one entry here and nothing
+  // else — which is the claim this table exists to make good on.
+  {
+    prefix: '/api/v1/foods',
+    target: process.env.NUTRITION_API_URL ?? 'http://nutrition-api:3001',
+    rewritePrefix: '/foods',
+  },
 ];

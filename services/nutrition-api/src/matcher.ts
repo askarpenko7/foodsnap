@@ -20,6 +20,13 @@ export interface MatchResult {
 
 export interface Matcher {
   match(query: string): MatchResult | null;
+  /**
+   * Several candidates for a person typing, rather than the single best guess
+   * for a classifier label. Deliberately more generous than `match`: someone
+   * halfway through "piz" wants to see Pizza, whereas a classifier emitting
+   * "outdoor" must get nothing.
+   */
+  search(query: string, limit?: number): MatchResult[];
 }
 
 /** Keys are compared normalised: case, spacing and edge punctuation are noise. */
@@ -75,6 +82,14 @@ export function similarity(a: string, b: string): number {
   return 1 - editDistance(a, b) / longest;
 }
 
+/**
+ * Search is looser than lookup on purpose. A person typing gets to see near
+ * misses and decide; a classifier label does not, because whatever it picks is
+ * logged as calories. Lookup's threshold stays configurable per environment,
+ * this one does not need to be.
+ */
+const SEARCH_MIN_SCORE = 0.45;
+
 export function createMatcher(foods: Food[], minScore: number): Matcher {
   const entries: IndexEntry[] = [];
   const exact = new Map<string, IndexEntry>();
@@ -106,6 +121,32 @@ export function createMatcher(foods: Food[], minScore: number): Matcher {
         }
       }
       return best;
+    },
+
+    search(query: string, limit = 10): MatchResult[] {
+      const normalized = normalize(query);
+      if (normalized === '') return [];
+
+      const scored = new Map<string, MatchResult>();
+      for (const entry of entries) {
+        // Prefix beats edit distance while someone is still typing: "piz" is
+        // three characters against "pizza", which scores 0.6 on similarity but
+        // is obviously the thing they mean.
+        const score = entry.key.startsWith(normalized)
+          ? 1 - (entry.key.length - normalized.length) / (entry.key.length * 10)
+          : similarity(normalized, entry.key);
+
+        if (score < SEARCH_MIN_SCORE) continue;
+
+        // One row per food, not per alias — matching both "pizza" and
+        // "margherita" should not list Pizza twice.
+        const previous = scored.get(entry.food.name);
+        if (previous === undefined || score > previous.score) {
+          scored.set(entry.food.name, { food: entry.food, matchedOn: entry.key, score });
+        }
+      }
+
+      return [...scored.values()].sort((a, b) => b.score - a.score).slice(0, limit);
     },
   };
 }

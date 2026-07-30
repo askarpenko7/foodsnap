@@ -6,6 +6,8 @@ import type { Macros, Serving } from '@foodsnap/shared';
 import { CaptureScreen } from '../screens/CaptureScreen';
 import { ResultsScreen } from '../screens/ResultsScreen';
 import { PortionScreen } from '../screens/PortionScreen';
+import { SearchScreen } from '../screens/SearchScreen';
+import { ManualEntryScreen } from '../screens/ManualEntryScreen';
 import { DiaryScreen } from '../screens/DiaryScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { GlassTabBar } from './GlassTabBar';
@@ -22,6 +24,8 @@ export type RootStackParamList = {
     /** Carried through so the diary row can show the photo that was scanned. */
     imageUri?: string;
   };
+  Search: undefined;
+  ManualEntry: undefined;
 };
 
 export type MainTabParamList = {
@@ -87,6 +91,16 @@ export function RootNavigator() {
         <Stack.Screen
           name="Portion"
           component={PortionScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="Search"
+          component={SearchScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="ManualEntry"
+          component={ManualEntryScreen}
           options={{ presentation: 'modal' }}
         />
       </Stack.Navigator>

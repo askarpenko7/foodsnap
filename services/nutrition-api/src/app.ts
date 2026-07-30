@@ -1,10 +1,20 @@
 import Fastify, { type FastifyInstance } from 'fastify';
-import type { ApiErrorResponse, HealthResponse, NutritionResponse } from '@foodsnap/shared';
+import type {
+  ApiErrorResponse,
+  FoodSearchResponse,
+  HealthResponse,
+  NutritionResponse,
+} from '@foodsnap/shared';
 import { config } from './config.js';
 import { foods } from './foods.js';
 import { createMatcher, type Matcher } from './matcher.js';
 
 const SERVICE_NAME = 'nutrition-api';
+
+/** Enough rows to fill the search list without scrolling forever. */
+const DEFAULT_SEARCH_LIMIT = 10;
+/** A caller asking for more than this is not rendering a search box. */
+const MAX_SEARCH_LIMIT = 50;
 
 export interface BuildAppOptions {
   /** Injectable for tests; defaults to a matcher over the bundled database. */
@@ -30,6 +40,32 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 
   app.get('/health', async (): Promise<HealthResponse> => {
     return { status: 'ok', service: SERVICE_NAME, uptime: Math.round(process.uptime()) };
+  });
+
+  /**
+   * Search stays server-side rather than shipping foods.json into the app: the
+   * database is the service's business, it can grow without an app release, and
+   * the gateway keeps owning auth and rate limiting for it like everything else.
+   */
+  app.get<{ Querystring: { q?: string; limit?: string } }>('/foods', async (request, reply) => {
+    const query = request.query.q ?? '';
+    const requested = Number(request.query.limit ?? DEFAULT_SEARCH_LIMIT);
+    const limit = Number.isFinite(requested)
+      ? Math.min(Math.max(Math.trunc(requested), 1), MAX_SEARCH_LIMIT)
+      : DEFAULT_SEARCH_LIMIT;
+
+    const body: FoodSearchResponse = {
+      query,
+      results: matcher.search(query, limit).map(({ food }) => ({
+        name: food.name,
+        per100g: food.per100g,
+        ...(food.servings === undefined ? {} : { servings: food.servings }),
+      })),
+      total: foods.length,
+    };
+    // An empty query or no matches is an empty list, not a 404 — the caller is a
+    // search box, and "nothing yet" is its normal state.
+    return reply.send(body);
   });
 
   app.get<{ Params: { food: string } }>('/nutrition/:food', async (request, reply) => {

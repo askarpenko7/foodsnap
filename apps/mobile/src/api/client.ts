@@ -1,9 +1,11 @@
 import Config from 'react-native-config';
 import {
   API_KEY_HEADER,
+  foodSearchPath,
   isApiErrorResponse,
   nutritionPath,
   type ApiErrorCode,
+  type FoodSearchResponse,
   type NutritionResponse,
 } from '@foodsnap/shared';
 
@@ -111,6 +113,36 @@ export async function fetchNutrition(food: string): Promise<NutritionResponse> {
       kind: 'malformed',
       status: 200,
       message: 'Gateway returned a nutrition body the app does not understand.',
+    });
+  }
+  return body;
+}
+
+function isSearchResponse(value: unknown): value is FoodSearchResponse {
+  if (typeof value !== 'object' || value === null) return false;
+  const { results, total } = value as { results?: unknown; total?: unknown };
+  if (!Array.isArray(results) || typeof total !== 'number') return false;
+  return results.every((row) => {
+    if (typeof row !== 'object' || row === null) return false;
+    const { name, per100g } = row as { name?: unknown; per100g?: unknown };
+    if (typeof name !== 'string' || typeof per100g !== 'object' || per100g === null) return false;
+    const macros = per100g as Record<string, unknown>;
+    return ['kcal', 'protein', 'carbs', 'fat'].every((k) => typeof macros[k] === 'number');
+  });
+}
+
+/**
+ * Searches the food database. Throws {@link ApiError} on failure, same as
+ * fetchNutrition — the search screen shows the failure inline and stays usable,
+ * because manual entry never needed the network.
+ */
+export async function searchFoods(query: string): Promise<FoodSearchResponse> {
+  const body = await getJson(foodSearchPath(query));
+  if (!isSearchResponse(body)) {
+    throw new ApiError({
+      kind: 'malformed',
+      status: 200,
+      message: 'Gateway returned a search body the app does not understand.',
     });
   }
   return body;
