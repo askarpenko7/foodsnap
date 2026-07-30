@@ -6,7 +6,7 @@ Hard-won facts about this repo and this machine. They are here because each one 
 
 ## Where the project stands
 
-Phases 1, 2 and 3 are complete. **Phase 4 is 6/6** — all seven concept screens exist (tab bar, Diary, camera, results, portion editor, search + manual entry, Settings). Nothing is queued; H5 (demo GIF) is the highest-value remaining item.
+Phases 1, 2 and 3 are complete. **Phase 4 is 6/6** — all seven concept screens exist (tab bar, Diary, camera, results, portion editor, search + manual entry, Settings). H5 (demo GIF) is done and is the README hero. The app has been run on a real iPhone 13 Pro Max.
 
 Two Phase 4 deviations are deliberate and documented in P4.6: Settings shows the gateway URL and api key **read-only** (react-native-config bakes them in at build time), and the "dim non-food labels" switch is local state that does not persist or drive the dimming.
 
@@ -14,7 +14,7 @@ Two Phase 4 deviations are deliberate and documented in P4.6: Settings shows the
 
 The repo is live at https://github.com/askarpenko7/foodsnap with CI green and [v0.1.0](https://github.com/askarpenko7/foodsnap/releases/tag/v0.1.0) released as a signed APK. Docker, Terraform and the iOS simulator all work on this machine.
 
-Human-only items still open: **H1** (real Android device run + swap the emulator screenshots), **H5** (demo GIF), **H6** (CV/LinkedIn). A real iPhone would also settle iOS label quality, which the Simulator cannot.
+Human-only items still open: **H1** is impossible (no Android device — iPhones only), and **H6** (CV/LinkedIn) is drafted but unposted.
 
 **`apps/mobile/.env` is platform-specific and gitignored.** `GATEWAY_URL` must be `http://10.0.2.2:8080` for the Android emulator but `http://localhost:8080` for the iOS simulator — `10.0.2.2` is an Android-only host alias. It is currently set for **Android**; switch it before testing iOS, and remember react-native-config bakes it in at build time, so a rebuild is required either way.
 
@@ -52,10 +52,9 @@ The gateway **refuses to start without `API_KEYS`** — that is deliberate, not 
   `org.gradle.java.home=/Applications/Android Studio.app/Contents/jbr/Contents/Home`.
   The README documents this as a prerequisite. If a build suddenly fails on Java version, check that file first.
 - **Android tooling needs the SDK env exported** in each shell: `export ANDROID_HOME=~/Library/Android/sdk; export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator`.
-- **The two platforms have different bundle ids, on purpose.** Android is `com.foodsnap` (what v0.1.0 shipped as; changing it would orphan that release). iOS is **`com.askarpenko7.foodsnap`** because Apple's identifier namespace is global and `com.foodsnap` is already registered to somebody else — a device build fails with "cannot be registered to your development team". `adb` commands need `com.foodsnap`; `xcrun simctl` needs `com.askarpenko7.foodsnap`. Note the workspace is named `foodsnap-mobile`, which misleads on both.
 - **iOS signing uses team `5PZDUPSM9U` = askarpenko7@gmail.com.** This machine has five signing identities and **two personal teams both displayed as "Alexander Karpenko"** — matching on TeamName picked `MZJS78V7NA`, which is actually *alexander.karpenko@firstlinesoftware.com*. Always resolve the team from the certificate's OU, not its display name:
   `security find-certificate -c "<identity name>" -p | openssl x509 -noout -subject`
-- **iOS bundle id is `dev.askarpenko7.foodsnap`.** It has been burned through twice: `com.foodsnap` is registered to an unrelated team, and `com.askarpenko7.foodsnap` got registered to the *firstlinesoftware* account by the mis-signed build before the team was corrected. An App ID cannot move between teams, hence the third name. Android is unaffected and stays `com.foodsnap`.
+- **The two platforms have different bundle ids, on purpose.** `adb` needs `com.foodsnap`; `xcrun simctl` and `devicectl` need `dev.askarpenko7.foodsnap`. The workspace is named `foodsnap-mobile`, which misleads on both. **iOS is `dev.askarpenko7.foodsnap`.** It has been burned through twice: `com.foodsnap` is registered to an unrelated team, and `com.askarpenko7.foodsnap` got registered to the *firstlinesoftware* account by the mis-signed build before the team was corrected. An App ID cannot move between teams, hence the third name. Android is unaffected and stays `com.foodsnap`.
 - Device builds need `-allowProvisioningUpdates`; the iPhone 13 Pro Max UDID is `00008110-001818A21EA1801E` (get it from `xcrun devicectl list devices --json-output`, *not* the CoreDevice identifier, which xcodebuild rejects).
 - **AVDs available:** `Pixel_8_API_35`, `Pixel_6_Pro_API_35`. One is often already booted — check `adb devices` before starting another.
 - **Metro is often already running on 8081** from a previous session; starting another fails with `EADDRINUSE`. Check `curl -s http://localhost:8081/status` first and reuse it.
