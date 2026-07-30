@@ -6,7 +6,9 @@ Hard-won facts about this repo and this machine. They are here because each one 
 
 ## Where the project stands
 
-Phases 1, 2 and 3 are all complete, DoD included. Phase 4 (the optional design build-out) is 3/6: glass tab bar, Diary with targets, and the portion editor are done. **Next task is P4.4** — search & manual log.
+Phases 1, 2 and 3 are complete. **Phase 4 is 6/6** — all seven concept screens exist (tab bar, Diary, camera, results, portion editor, search + manual entry, Settings). Nothing is queued; H5 (demo GIF) is the highest-value remaining item.
+
+Two Phase 4 deviations are deliberate and documented in P4.6: Settings shows the gateway URL and api key **read-only** (react-native-config bakes them in at build time), and the "dim non-food labels" switch is local state that does not persist or drive the dimming.
 
 **The one trap in this area:** P4.2 deleted `lib/history.ts` and HistoryScreen and deferred logging to P4.3, which left a window where *nothing* called `addEntry` and the Diary could never fill. If you split a store from its only writer again, either land both together or mark the dependent DoD row as superseded — a green tracker for a screen that no longer exists is exactly the failure this file guards against.
 
